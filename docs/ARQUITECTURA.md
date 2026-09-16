@@ -64,3 +64,4 @@ Notas: el flujo respeta la separación controlador → servicio → repositorio;
 
 ---
 Consejo práctico: al cambiar reglas de negocio, modificar la entidad del dominio (`Task`) y añadir tests unitarios para las reglas; mantén `TaskService` como orquestador y `ProjectController` como adaptador HTTP.
+Las fechas límite se validan en `Task.estaVencida()` (`src/main/java/com/taskflow/model/Task.java`).

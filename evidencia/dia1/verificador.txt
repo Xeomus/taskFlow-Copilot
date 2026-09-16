@@ -1,4 +1,4 @@
-Verificando docs\ARQUITECTURA.md contra C:\Users\mruge\taskflow-copilot-cursosmrugerio
+Verificando docs\ARQUITECTURA.md contra C:\Users\navae\Downloads\taskflow-IA
 
 [OK]         línea 7    paquete   com.taskflow.controller  ->  src\main\java\com\taskflow\controller
 [OK]         línea 7    endpoint  /projects  ->  GET en src\main\java\com\taskflow\controller\ProjectController.java
@@ -57,8 +57,9 @@ Verificando docs\ARQUITECTURA.md contra C:\Users\mruge\taskflow-copilot-cursosmr
 [OK]         línea 50   clase     DataSeeder  ->  src\main\java\com\taskflow\config\DataSeeder.java
 [OK]         línea 59   ruta      src/main/java/com/taskflow/repository/TaskRepository.java  ->  src\main\java\com\taskflow\repository\TaskRepository.java
 [OK]         línea 63   ruta      src/main/java/com/taskflow/config/DataSeeder.java  ->  src\main\java\com\taskflow\config\DataSeeder.java
+[OK]         línea 67   miembro   Task.estaVencida  ->  src\main\java\com\taskflow\model\Task.java
 
 Sin verificar (17): el script no sabe comprobarlos; léelos tú:
   `-Ddocker.tests=true` (l. 46), `*IT.java` (l. 46), `/auth/**` (l. 35), `201 Created` (l. 21), `admin` (l. 50), `ADMIN` (l. 40), `ana` (l. 50), `Authorization: Bearer <token>` (l. 38), `DONE` (l. 27), `h2` (l. 63), `luis` (l. 50), `mvn -q test` (l. 48), `mvn -q test "-Dtest=TaskServiceTest"` (l. 49), `mvn spring-boot:run "-Dspring-boot.run.profiles=h2"` (l. 50), `mvn test` (l. 46), `test` (l. 46), `TODO` (l. 27)
 
-Resumen: 54 OK · 3 REVISA · 0 EXTERNA · 0 NO EXISTE · 17 sin verificar
+Resumen: 55 OK · 3 REVISA · 0 EXTERNA · 0 NO EXISTE · 17 sin verificar

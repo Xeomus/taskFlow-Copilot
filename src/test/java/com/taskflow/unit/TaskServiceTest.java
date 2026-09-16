@@ -174,28 +174,31 @@ class TaskServiceTest {
 
         @Test
         void vencidas_filtraYOrdena() {
-            // Construir tareas reales: una vencida antigua, una vencida menos antigua, una DONE vencida, y una sin fecha
-            Task vencidaAntigua;
-            Task vencidaReciente;
-            Task hechaVencida;
+            // El repositorio devuelve, en este orden: una vencida hace 1 día, una con fecha en 3 días,
+            // una DONE vencida hace 10 días, una sin dueDate, y una vencida hace 5 días.
+            Task unaDia;
+            Task tresDiasFuturo;
+            Task doneDiezDias;
             Task sinFecha;
+            Task cincoDias;
             try {
-                vencidaAntigua = new Task(10L, "Tarea antigua", "d", TaskStatus.IN_PROGRESS, Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(3));
-                vencidaReciente = new Task(11L, "Tarea reciente", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(1));
-                hechaVencida = new Task(12L, "Hecha vencida", "d", TaskStatus.DONE, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(5));
-                sinFecha = new Task(13L, "Sin fecha", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, null);
+                unaDia = new Task(101L, "Hace 1 dia", "d", TaskStatus.IN_PROGRESS, Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(1));
+                tresDiasFuturo = new Task(102L, "En 3 dias", "d", TaskStatus.IN_PROGRESS, Priority.MED, PROYECTO, 1L, LocalDate.now().plusDays(3));
+                doneDiezDias = new Task(103L, "Done antiguo", "d", TaskStatus.DONE, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(10));
+                sinFecha = new Task(104L, "Sin fecha", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, null);
+                cincoDias = new Task(105L, "Hace 5 dias", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(5));
             } catch (TaskValidationException e) {
                 throw new IllegalStateException(e);
             }
 
-            when(repository.findAll()).thenReturn(List.of(hechaVencida, vencidaReciente, sinFecha, vencidaAntigua));
+            when(repository.findAll()).thenReturn(List.of(unaDia, tresDiasFuturo, doneDiezDias, sinFecha, cincoDias));
 
             List<Task> res = service.vencidas();
 
-            // Solo deben aparecer las dos vencidas (hechaVencida está DONE -> excluida), en orden por dueDate asc (más antigua primero)
+            // Deben aparecer solo las dos vencidas (cincoDias y unaDia), y ordenadas por fecha asc: cincoDias (hace 5 días) primero
             assertEquals(2, res.size());
-            assertEquals(vencidaAntigua, res.get(0));
-            assertEquals(vencidaReciente, res.get(1));
+            assertEquals(105L, res.get(0).getId());
+            assertEquals(101L, res.get(1).getId());
         }
     }
 }

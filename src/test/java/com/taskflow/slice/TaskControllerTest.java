@@ -99,7 +99,7 @@ class TaskControllerTest {
     }
 
     @Test
-    void getOverdue_retorna200YListaOrdenada() throws Exception {
+    void getOverdue_retorna200YUnaTarea() throws Exception {
         Task vencida;
         try {
             vencida = new Task(7L, "Corregir bug de fechas", "desc", TaskStatus.IN_PROGRESS, Priority.MED, 1L, 1L, java.time.LocalDate.now().minusDays(1));
@@ -111,7 +111,8 @@ class TaskControllerTest {
         mockMvc.perform(get("/tasks/overdue"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(7));
+                .andExpect(jsonPath("$[0].id").value(7))
+                .andExpect(jsonPath("$[0].title").value("Corregir bug de fechas"));
     }
 
 

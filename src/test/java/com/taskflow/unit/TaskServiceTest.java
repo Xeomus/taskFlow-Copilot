@@ -18,6 +18,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -163,6 +165,37 @@ class TaskServiceTest {
             return new Task(id, title, "desc", TaskStatus.TODO, Priority.MED, PROYECTO, assigneeId, null);
         } catch (TaskValidationException e) {
             throw new IllegalStateException("dato de prueba inválido", e);
+        }
+    }
+
+    @Nested
+    @DisplayName("vencidas")
+    class Vencidas {
+
+        @Test
+        void vencidas_filtraYOrdena() {
+            // Construir tareas reales: una vencida antigua, una vencida menos antigua, una DONE vencida, y una sin fecha
+            Task vencidaAntigua;
+            Task vencidaReciente;
+            Task hechaVencida;
+            Task sinFecha;
+            try {
+                vencidaAntigua = new Task(10L, "Tarea antigua", "d", TaskStatus.IN_PROGRESS, Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(3));
+                vencidaReciente = new Task(11L, "Tarea reciente", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(1));
+                hechaVencida = new Task(12L, "Hecha vencida", "d", TaskStatus.DONE, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(5));
+                sinFecha = new Task(13L, "Sin fecha", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, null);
+            } catch (TaskValidationException e) {
+                throw new IllegalStateException(e);
+            }
+
+            when(repository.findAll()).thenReturn(List.of(hechaVencida, vencidaReciente, sinFecha, vencidaAntigua));
+
+            List<Task> res = service.vencidas();
+
+            // Solo deben aparecer las dos vencidas (hechaVencida está DONE -> excluida), en orden por dueDate asc (más antigua primero)
+            assertEquals(2, res.size());
+            assertEquals(vencidaAntigua, res.get(0));
+            assertEquals(vencidaReciente, res.get(1));
         }
     }
 }

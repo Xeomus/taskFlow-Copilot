@@ -99,6 +99,23 @@ class TaskControllerTest {
     }
 
     @Test
+    void getOverdue_retorna200YListaOrdenada() throws Exception {
+        Task vencida;
+        try {
+            vencida = new Task(7L, "Corregir bug de fechas", "desc", TaskStatus.IN_PROGRESS, Priority.MED, 1L, 1L, java.time.LocalDate.now().minusDays(1));
+        } catch (com.taskflow.exception.TaskValidationException e) {
+            throw new IllegalStateException(e);
+        }
+        when(taskService.vencidas()).thenReturn(List.of(vencida));
+
+        mockMvc.perform(get("/tasks/overdue"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(7));
+    }
+
+
+    @Test
     void getTaskPorId_inexistente_retorna404() throws Exception {
         // El service dice "no está" (Optional vacío); el controller lanza -> el advice (SÍ vive en el slice) responde 404.
         when(taskService.buscarPorId(999L)).thenReturn(Optional.empty());

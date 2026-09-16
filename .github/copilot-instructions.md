@@ -1,65 +1,115 @@
-# Instrucciones de Copilot para TaskFlow API
+# Instrucciones de Copilot para TaskFlow API (mejoradas)
 
-Este archivo lo lee Copilot en cada sesión que abras dentro de este repositorio. Describe cómo está
-hecho el proyecto y qué convenciones seguir. Si una respuesta del agente contradice este archivo, gana
-este archivo.
+Este archivo lo lee Copilot en cada sesión para entender el proyecto, sus convenciones y los comandos
+exactos que debe usar. Si hay contradicción, este archivo tiene preferencia.
 
-## Idioma
+## Idioma y estilo
 
-- Responde en **español**.
-- Comentarios, Javadoc y mensajes de commit en español. Los nombres de clases y métodos se quedan como
-  están en el código (mezcla de inglés y español: `TaskService.cambiarStatus()`, `Task.estaVencida()`).
+- Responder siempre en **español**.
+- Comentarios, javadoc y mensajes de commit en español. Mantener nombres de clases/métodos tal como
+  están en el código (mezcla `camelCase` / español-inglés aceptada).
 
-## Comandos
+## Comandos (build, test, run)
 
-El proyecto es Maven con Spring Boot 3.5.3 y Java 21. En Windows se usan desde PowerShell.
+- Ejecutar la suite completa (silencioso):
 
-```powershell
-mvn -q test                                             # la suite normal (67 tests al empezar la semana)
-mvn -q test "-Dtest=TaskServiceTest"                    # una sola clase de test
-mvn spring-boot:run "-Dspring-boot.run.profiles=h2"     # la app con H2 en memoria y datos de ejemplo
-mvn -q package -DskipTests                              # solo el jar, sin tests
-```
+  mvn -q test
 
-- Con el perfil `h2` la base se crea vacía y `DataSeeder` la llena en cada arranque: usuarios `ana`,
-  `luis` y `admin` (contraseñas `ana123`, `luis123`, `admin123`), 3 proyectos y 9 tareas.
-- Los tests `*IT.java` usan Testcontainers y **no** corren con `mvn test` salvo `-Ddocker.tests=true`.
-  No los actives: esta semana no se usa Docker.
+- Ejecutar una sola clase de pruebas (útil para debugging rápido):
 
-## Arquitectura
+  mvn -q test "-Dtest=NombreDeLaClaseTest"
 
-- Paquete raíz `com.taskflow`, en capas: `controller` (HTTP) → `service` (casos de uso) → `repository`
-  (Spring Data JPA) → `model` (entidades con comportamiento). Los controladores devuelven **DTOs**
-  (`dto`), nunca entidades, a través de los mappers manuales de `mapper` (`TaskMapper.aResponse`).
-- `Task` guarda sus reglas: `Task.crear(...)` nace en `TODO` y rechaza fechas pasadas; el constructor
-  público sirve para rehidratar y sí acepta fechas pasadas; pasar a `DONE` exige responsable.
-  `Task.estaVencida()` = tiene fecha, ya pasó y no está `DONE`. **Reutiliza esas reglas, no las copies.**
-- Errores: `GlobalExceptionHandler` los convierte en respuestas uniformes. 400 validación, 404 no
-  existe, 422 estado inválido, 409 usuario duplicado, 401 sin token o login fallido, 403 sin permiso.
-  No agregues un manejador genérico de `Exception`.
-- Seguridad: JWT sin estado. Son públicos `/auth/**`, `/info`, Swagger, la consola H2 y los archivos de
-  la UI; todo lo demás pide token. Borrar un proyecto solo lo puede su dueño o un `ADMIN`
-  (`@PreAuthorize` + `ProjectSecurity`).
-- `src/main/resources/static` es una UI sencilla servida por la misma API (login, proyectos, tareas).
+  Ejemplo: mvn -q test "-Dtest=TaskServiceTest"
 
-## Convenciones
+- Ejecutar `verify` (incluye JaCoCo/quality gate):
 
-- DTOs como `record` con Bean Validation y `@Valid` en los `@RequestBody`.
-- Inyección por constructor. Sin Lombok.
-- `POST` que crea → `201 Created` con cabecera `Location`; `DELETE` → `204 No Content`.
-- Rutas sin prefijo `/api`: `/tasks`, `/projects`, `/auth/login`, `/info`.
-- Tests: `unit` con JUnit 5 y Mockito sin Spring; `slice` con `@WebMvcTest` o `@DataJpaTest`;
-  `integration` con `@SpringBootTest` y perfil `test`.
+  mvn verify
 
-## Reglas para el agente
+- Ejecutar integración con Testcontainers (añade *IT.java*):
 
-- **No modifiques tests existentes** para que pasen. Si un test falla, arregla el código o explica por
-  qué el test está mal y detente.
-- No toques archivos fuera de lo que se te pidió; si crees que hace falta, dilo antes de hacerlo.
-- Al terminar un cambio en código Java corre `mvn -q test`. Si termina sin errores, di que la suite pasó;
-  no busques cuántos tests fueron (`-q` no lo imprime y buscarlo gasta créditos). Si solo cambiaste
-  documentación, no lo corras.
-- No hagas `git commit` ni `git push` salvo que te lo pidan.
-- No escribas comentarios que expliquen cosas que no verificaste. Si no sabes por qué funciona algo, no
-  lo afirmes.
-- Nunca escribas secretos (contraseñas, tokens, llaves) en archivos del repositorio.
+  mvn test -Ddocker.tests=true
+
+- Empaquetar sin tests:
+
+  mvn -q package -DskipTests
+
+- Correr la app en local con H2 y datos semilla (no requiere Postgres ni Docker):
+
+  mvn spring-boot:run "-Dspring-boot.run.profiles=h2"
+
+- Levantar con Docker Compose (imagen + Postgres):
+
+  docker compose up --build
+
+- Parar contenedores manteniendo datos:
+
+  docker compose down
+
+- Parar y borrar volumenes (arranque desde cero):
+
+  docker compose down -v
+
+Nota: no hay linter configurado en el pom; seguir las convenciones del repo.
+
+## Arquitectura (alto nivel)
+
+- Paquete raíz: `com.taskflow`.
+- Capas:
+  - controller: adaptadores HTTP (DTOs, validación `@Valid`) — `com.taskflow.controller`.
+  - service: casos de uso / orquestación — `com.taskflow.service`.
+  - repository: Spring Data JPA — `com.taskflow.repository`.
+  - model: entidades/ruletas de dominio con comportamiento (reglas) — `com.taskflow.model`.
+  - dto/mapper: DTOs (`record`) y mappers manuales (`com.taskflow.mapper`) para no exponer entidades.
+  - config/security: `SecurityConfig`, JwtFilter, `ProjectSecurity` para reglas basadas en datos.
+  - advice: `GlobalExceptionHandler` para respuestas JSON uniformes.
+
+- Regla práctica: las reglas de negocio van en las entidades (ej. `Task.crear`, `Task.setStatus`,
+  `Task.estaVencida()`); los servicios orquestan y traducen excepciones a estados HTTP.
+
+## Convenciones clave y patrones específicos
+
+- DTOs = `record` con Bean Validation; controladores usan `@Valid` en `@RequestBody`.
+- Inyección por constructor en todas las clases con dependencias; no usar Lombok.
+- POST que crea → responder `201 Created` + encabezado `Location` apuntando a la URL de lectura.
+- DELETE → `204 No Content`.
+- No devolver entidades JPA directamente en controladores; usar mappers a DTOs.
+- Autoría/seguridad: JWT stateless; `/auth/**`, `/info`, Swagger y H2-console son públicos.
+- Borrar proyecto: solo OWNER o ADMIN — se combina `@PreAuthorize` con el bean `ProjectSecurity`.
+- No añadir un manejador global forzando catch de `Exception` (el proyecto ya mapea códigos concretos).
+
+## Tests y reglas especiales
+
+- Suite normal: `mvn -q test` (67 tests actuales).
+- Quality gate JaCoCo: `mvn verify` (gate en profile `cobertura`, mínimo 70% líneas).
+- Testcontainers: activar con `-Ddocker.tests=true` (añade *IT.java*). El `docker-java` client
+  requiere `api.version=1.41` — el pom ya tiene soporte para esto en el profile `docker-it`.
+- Ejecutar solo la clase de test con `-Dtest=...` para ahorrar tiempo.
+
+## Archivos de referencia y reglas ocultas a recordar
+
+- `Task` (src/main/java/com/taskflow/model/Task.java) contiene reglas importantes: fábrica `crear(...)`,
+  `setStatus(...)` (no pasar a DONE sin assignee) y `estaVencida()` (fecha existe y pasada y no DONE).
+- `DataSeeder` (src/main/java/com/taskflow/config/DataSeeder.java) siembra usuarios `ana/luis/admin` y
+  proyectos/tareas en el perfil `h2`.
+- `SecurityConfig` controla entry point (401) y access denied handler (403) — ambos deben existir.
+
+## Reglas para el agente (copilot) — conducta operativa
+
+- Responder en español.
+- No modificar tests existentes para que pasen; arreglar código o reportar la razón.
+- Tras cambiar código Java: ejecutar `mvn -q test` y reportar solo si pasó o falló.
+- No hacer commits ni pushes sin autorización explícita.
+- No introducir secretos en el repositorio.
+- Evitar cambios fuera del alcance pedido; si se requieren, pedir permiso primero.
+
+## Integración con otros asistentes / configs
+
+- Se buscó configuración para otros asistentes (CLAUDE.md, .cursorrules, AGENTS.md, .windsurfrules,
+  CONVENTIONS.md, AIDER_CONVENTIONS.md, .clinerules) y no se encontraron archivos relevantes.
+
+---
+
+ACTUALIZACIÓN: este archivo reemplaza/expande la versión previa con comandos más explícitos y
+puntos clave sobre pruebas, JaCoCo y Testcontainers.
+
+¿Quieres que aplique este cambio sustituyendo el archivo existente ahora? (si confirmas, lo escribo).

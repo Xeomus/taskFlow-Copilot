@@ -1,0 +1,99 @@
+{
+  "totalPremiumRequestCost": 0,
+  "totalUserRequests": 4,
+  "totalNanoAiu": 6645115000,
+  "tokenDetails": {
+    "input": {
+      "tokenCount": 146715
+    },
+    "cache_read": {
+      "tokenCount": 466176
+    },
+    "cache_write": {
+      "tokenCount": 0
+    },
+    "output": {
+      "tokenCount": 9059
+    }
+  },
+  "totalApiDurationMs": 204889,
+  "sessionStartTime": "2026-09-14T01:48:20.282Z",
+  "codeChanges": {
+    "linesAdded": 79,
+    "linesRemoved": 12,
+    "filesModifiedCount": 1,
+    "filesModified": [
+      "C:\\Users\\mruge\\taskflow-copilot-cursosmrugerio\\docs\\ARQUITECTURA.md"
+    ]
+  },
+  "modelMetrics": {
+    "gpt-5-mini": {
+      "requests": {
+        "count": 22,
+        "cost": 0
+      },
+      "usage": {
+        "inputTokens": 612891,
+        "outputTokens": 9059,
+        "cacheReadTokens": 466176,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 4608
+      },
+      "cacheExpiresAt": "2026-09-14T02:44:04.521Z",
+      "totalNanoAiu": 6645115000,
+      "tokenDetails": {
+        "input": {
+          "tokenCount": 146715
+        },
+        "cache_read": {
+          "tokenCount": 466176
+        },
+        "cache_write": {
+          "tokenCount": 0
+        },
+        "output": {
+          "tokenCount": 9059
+        }
+      }
+    }
+  },
+  "agentMetrics": {
+    "main": {
+      "totalApiDurationMs": 204889,
+      "totalNanoAiu": 6645115000,
+      "modelMetrics": {
+        "gpt-5-mini": {
+          "requests": {
+            "count": 22,
+            "cost": 0
+          },
+          "usage": {
+            "inputTokens": 612891,
+            "outputTokens": 9059,
+            "cacheReadTokens": 466176,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 4608
+          },
+          "totalNanoAiu": 6645115000,
+          "tokenDetails": {
+            "input": {
+              "tokenCount": 146715
+            },
+            "cache_read": {
+              "tokenCount": 466176
+            },
+            "cache_write": {
+              "tokenCount": 0
+            },
+            "output": {
+              "tokenCount": 9059
+            }
+          }
+        }
+      }
+    }
+  },
+  "currentModel": "gpt-5-mini",
+  "lastCallInputTokens": 37737,
+  "lastCallOutputTokens": 60
+}

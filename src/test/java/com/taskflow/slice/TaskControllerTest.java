@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -113,6 +115,26 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(7))
                 .andExpect(jsonPath("$[0].title").value("Corregir bug de fechas"));
+    }
+
+    @Test
+    void getUnassigned_retorna200YAssigneeNull() throws Exception {
+                Task t4;
+                Task t6;
+                try {
+                    t4 = new Task(4L, "Escribir tests MockMvc", "desc", TaskStatus.TODO, Priority.MED, 1L, null, java.time.LocalDate.now().plusDays(7));
+                    t6 = new Task(6L, "Publicar en la tienda", "desc", TaskStatus.TODO, Priority.MED, 1L, null, java.time.LocalDate.now().plusDays(10));
+                } catch (com.taskflow.exception.TaskValidationException e) {
+                    throw new IllegalStateException(e);
+                }
+                when(taskService.sinResponsable()).thenReturn(List.of(t4, t6));
+
+                mockMvc.perform(get("/tasks/unassigned"))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.length()").value(2))
+                        .andExpect(jsonPath("$[*].id").value(containsInAnyOrder(4, 6)))
+                        .andExpect(jsonPath("$[0].assigneeId").value(nullValue()))
+                        .andExpect(jsonPath("$[1].assigneeId").value(nullValue()));
     }
 
 

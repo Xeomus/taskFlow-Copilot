@@ -80,6 +80,17 @@ public class TaskController {
         return taskService.vencidas().stream().map(TaskMapper::aResponse).toList();
     }
 
+    /**
+     * GET /tasks/unassigned — lista las tareas sin responsable de todos los proyectos. Devuelve
+     * TaskResponse y 200 OK (lista vacía si no hay ninguna).
+     */
+    @Operation(summary = "Lista tareas sin responsable",
+            description = "Lista las tareas cuyo assigneeId es null en todos los proyectos.")
+    @GetMapping("/tasks/unassigned")
+    public List<TaskResponse> getUnassignedTasks() {
+        return taskService.sinResponsable().stream().map(TaskMapper::aResponse).toList();
+    }
+
     @Operation(summary = "Obtiene una tarea por id",
             description = "200 con el TaskResponse; 404 uniforme si el id no existe.")
     @GetMapping("/tasks/{id:\\d+}")

@@ -122,4 +122,24 @@ public class TaskService {
                 .filter(t -> t.getPriority() == priority)
                 .toList();
     }
+
+    /** Devuelve las tareas vencidas (Task.estaVencida() == true), ordenadas por fecha asc (más antigua primero). */
+    public List<Task> vencidas() {
+        return repository.findAll().stream()
+                .filter(Task::estaVencida)
+                .sorted(TaskOrders.POR_FECHA)
+                .toList();
+    }
+
+    /**
+     * Devuelve las tareas sin responsable (assigneeId == null), en cualquier estado, ordenadas por
+     * dueDate ascendente con las tareas sin fecha al final. Usa el predicado reutilizable
+     * ReportService.SIN_ASIGNAR y la estrategia TaskOrders.POR_FECHA (especificación).
+     */
+    public List<Task> sinResponsable() {
+        return repository.findAll().stream()
+                .filter(ReportService.SIN_ASIGNAR)
+                .sorted(TaskOrders.POR_FECHA)
+                .toList();
+    }
 }

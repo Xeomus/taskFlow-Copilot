@@ -18,6 +18,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -163,6 +165,82 @@ class TaskServiceTest {
             return new Task(id, title, "desc", TaskStatus.TODO, Priority.MED, PROYECTO, assigneeId, null);
         } catch (TaskValidationException e) {
             throw new IllegalStateException("dato de prueba inválido", e);
+        }
+    }
+
+    @Nested
+    @DisplayName("SinResponsable")
+    class SinResponsable {
+
+        @Test
+        void sinResponsable_filtraYOrdenaPorFecha() {
+            Task diez;
+            Task conAssignee;
+            Task sinFecha;
+            Task dos;
+            try {
+                diez = new Task(201L, "Diez dias", "d", TaskStatus.TODO, Priority.MED, PROYECTO, null, LocalDate.now().plusDays(10));
+                conAssignee = new Task(202L, "Con responsable", "d", TaskStatus.TODO, Priority.MED, PROYECTO, 5L, LocalDate.now().plusDays(20));
+                sinFecha = new Task(203L, "Sin fecha", "d", TaskStatus.TODO, Priority.MED, PROYECTO, null, null);
+                dos = new Task(204L, "Dos dias", "d", TaskStatus.TODO, Priority.MED, PROYECTO, null, LocalDate.now().plusDays(2));
+            } catch (TaskValidationException e) {
+                throw new IllegalStateException(e);
+            }
+
+            // El repositorio devuelve (en este orden): sin responsable con fecha en 10 días, con responsable,
+            // sin responsable sin fecha, sin responsable con fecha en 2 días
+            when(repository.findAll()).thenReturn(List.of(diez, conAssignee, sinFecha, dos));
+
+            List<Task> res = service.sinResponsable();
+
+            // Debe quedar solo las tres sin responsable, ordenadas por dueDate asc (2d, 10d, sin fecha)
+            List<Long> ids = res.stream().map(Task::getId).toList();
+            assertEquals(List.of(204L, 201L, 203L), ids);
+        }
+
+        @Test
+        void sinResponsable_soloConAssignee_devuelveVacio() {
+            Task t1 = tarea(1L, "Con1", 5L);
+            Task t2 = tarea(2L, "Con2", 6L);
+            when(repository.findAll()).thenReturn(List.of(t1, t2));
+
+            List<Task> res = service.sinResponsable();
+
+            assertEquals(0, res.size());
+        }
+    }
+
+    @Nested
+    @DisplayName("vencidas")
+    class Vencidas {
+
+        @Test
+        void vencidas_filtraYOrdena() {
+            // El repositorio devuelve, en este orden: una vencida hace 1 día, una con fecha en 3 días,
+            // una DONE vencida hace 10 días, una sin dueDate, y una vencida hace 5 días.
+            Task unaDia;
+            Task tresDiasFuturo;
+            Task doneDiezDias;
+            Task sinFecha;
+            Task cincoDias;
+            try {
+                unaDia = new Task(101L, "Hace 1 dia", "d", TaskStatus.IN_PROGRESS, Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(1));
+                tresDiasFuturo = new Task(102L, "En 3 dias", "d", TaskStatus.IN_PROGRESS, Priority.MED, PROYECTO, 1L, LocalDate.now().plusDays(3));
+                doneDiezDias = new Task(103L, "Done antiguo", "d", TaskStatus.DONE, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(10));
+                sinFecha = new Task(104L, "Sin fecha", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, null);
+                cincoDias = new Task(105L, "Hace 5 dias", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(5));
+            } catch (TaskValidationException e) {
+                throw new IllegalStateException(e);
+            }
+
+            when(repository.findAll()).thenReturn(List.of(unaDia, tresDiasFuturo, doneDiezDias, sinFecha, cincoDias));
+
+            List<Task> res = service.vencidas();
+
+            // Deben aparecer solo las dos vencidas (cincoDias y unaDia), y ordenadas por fecha asc: cincoDias (hace 5 días) primero
+            assertEquals(2, res.size());
+            assertEquals(105L, res.get(0).getId());
+            assertEquals(101L, res.get(1).getId());
         }
     }
 }

@@ -86,6 +86,15 @@ public class ProjectController {
         return tareas.stream().map(TaskMapper::aResponse).toList();
     }
 
+    @Operation(summary = "Resumen del proyecto",
+            description = "Devuelve un resumen con recuentos de tareas por estado y cuántas están vencidas. 404 si el proyecto no existe.")
+    @GetMapping("/projects/{id}/summary")
+    public com.taskflow.dto.ProjectSummaryResponse getProjectSummary(@PathVariable("id") Long id) {
+        Project proyecto = projectService.buscarPorId(id)
+                .orElseThrow(() -> new ProjectNotFoundException(id));
+        return projectService.resumenDe(proyecto);
+    }
+
     /**
      * POST /projects — 201 + Location a /projects/{id}. @Valid dispara Bean Validation (400 si falla).
      * MP-9: el owner sale del JWT — el Authentication (inyectado por Spring Security) trae el username

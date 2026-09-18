@@ -22,4 +22,12 @@ public final class ProjectMapper {
         return new ProjectResponse(p.getId(), p.getName(), p.getDescription(),
                 p.getOwnerId(), p.getCreatedAt());
     }
+
+    /**
+     * Crea un ProjectSummaryResponse a partir de la entidad Project y los recuentos calculados.
+     */
+    public static com.taskflow.dto.ProjectSummaryResponse aSummary(Project p,
+            int totalTasks, java.util.Map<com.taskflow.model.TaskStatus, Integer> byStatus, int overdue) {
+        return new com.taskflow.dto.ProjectSummaryResponse(p.getId(), p.getName(), totalTasks, byStatus, overdue);
+    }
 }

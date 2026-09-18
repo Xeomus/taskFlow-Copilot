@@ -116,7 +116,7 @@ public class ProjectService {
         int overdue = 0;
         for (Task t : tareas) {
             byStatus.put(t.getStatus(), byStatus.get(t.getStatus()) + 1);
-            if (t.estaVencida()) {
+            if (t.getDueDate() != null && t.getDueDate().isBefore(LocalDate.now())) {
                 overdue++;
             }
         }

@@ -101,6 +101,19 @@ public class TaskController {
     }
 
     /**
+     * GET /tasks/search?q= — busca tareas cuyo título contiene q (case-insensitive).
+     * q se recibe como required = false para que la validación quede en el servicio y el advice
+     * mapee TaskValidationException a 400 con el mensaje uniforme.
+     */
+    @Operation(summary = "Busca tareas por título",
+            description = "Busca tareas cuyo título contiene el parámetro 'q' (case-insensitive). q es obligatorio; si falta o queda vacío el service lanzará TaskValidationException y el advice responderá 400.")
+    @GetMapping("/tasks/search")
+    public List<TaskResponse> searchTasks(@RequestParam(name = "q", required = false) String q) throws TaskValidationException {
+        List<Task> tareas = taskService.buscarPorTitulo(q);
+        return tareas.stream().map(TaskMapper::aResponse).toList();
+    }
+
+    /**
      * POST /projects/{projectId}/tasks — crea una tarea bajo un proyecto. 201 + header Location
      * apuntando a donde el recurso SE LEE (/tasks/{id}), no a la URL de creación. @Valid dispara Bean
      * Validation (400 si falla). Cableo: si el proyecto no existe -> 404 (ProjectNotFoundException).

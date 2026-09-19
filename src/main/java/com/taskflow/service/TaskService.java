@@ -142,4 +142,18 @@ public class TaskService {
                 .sorted(TaskOrders.POR_FECHA)
                 .toList();
     }
+
+    /**
+     * Busca tareas cuyo título contiene el fragmento q (case-insensitive). Recorta q con strip();
+     * si q es null o queda vacío, lanza TaskValidationException con el mensaje requerido.
+     */
+    public List<Task> buscarPorTitulo(String q) throws TaskValidationException {
+        if (q == null || q.strip().isEmpty()) {
+            throw new TaskValidationException("El parámetro 'q' es obligatorio.");
+        }
+        String fragment = q.strip();
+        return repository.findByTitleContainingIgnoreCase(fragment).stream()
+                .sorted(TaskOrders.POR_TITULO)
+                .toList();
+    }
 }

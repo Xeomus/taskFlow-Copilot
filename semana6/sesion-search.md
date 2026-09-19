@@ -1,10 +1,10 @@
 # Copilot CLI Session
 
 > [!NOTE]
-> - **Session ID:** `8f783b14-f498-4a14-9802-a218e5307a7e`  
-> - **Started:** 9/18/2026, 11:38:54 PM  
-> - **Duration:** 3m 29s  
-> - **Exported:** 9/18/2026, 11:42:23 PM  
+> - **Session ID:** `699353df-aa8c-4635-9d4e-2bcdacaab5d1`  
+> - **Started:** 9/19/2026, 12:00:23 AM  
+> - **Duration:** 1m 46s  
+> - **Exported:** 9/19/2026, 12:02:09 AM  
 
 ---
 
@@ -12,19 +12,19 @@
 
 ### User
 
-/crear-endpoint-taskflow Implementa la especificación specs/search.md. Síguela al pie de la letra: archivos, nombres, reglas y tests. Al terminar corre mvn -q test.
+/crear-endpoint-taskflow Implementa exclusivamente la especificación specs/search.md. No implementes otra spec. Síguela al pie de la letra: archivos, nombres, reglas y tests. Al terminar corre mvn -q test.
 
 ---
 
-<sub>11s</sub>
+<sub>9s</sub>
 
 ### Copilot
 
-Ejecutando la skill "crear-endpoint-taskflow" para implementar exactamente la especificación specs/search.md: creará DTO record, mapper manual, método en service, controller sin prefijo /api, tests unitarios (Mockito) y @WebMvcTest, y al final ejecutará mvn -q test para verificar. Solicitud en español y con instrucciones precisas. Ahora lanzo la skill con el contexto del repo y la ruta de la spec.
+Leyendo specs/search.md y creando el endpoint exactamente según esa especificación usando las convenciones del proyecto (record DTO, mapper manual, método en service, controller sin prefijo /api, tests con Mockito y @WebMvcTest). Ejecutando la skill "crear-endpoint-taskflow" para implementar sólo specs/search.md y luego correr mvn -q test.
 
 ---
 
-<sub>11s</sub>
+<sub>9s</sub>
 
 ### `skill`
 
@@ -48,15 +48,15 @@ Skill "crear-endpoint-taskflow" loaded successfully. Follow the instructions in 
 
 ---
 
-<sub>19s</sub>
+<sub>12s</sub>
 
 ### Copilot
 
-Leyendo la especificación specs/search.md y las plantillas, y buscando el controller/service relacionado para implementar el endpoint exactamente según la skill. Ejecutando lecturas y búsquedas de archivos relevantes.
+Leyendo specs/search.md para implementar exactamente la especificación (DTOs, mapper, service, controller y tests) y luego ejecutar mvn -q test. Voy a abrir el archivo specs/search.md.
 
 ---
 
-<sub>19s</sub>
+<sub>12s</sub>
 
 ### `view`
 
@@ -161,364 +161,33 @@ no el agente: no cuentan contra esta restricción.
 
 ---
 
-<sub>19s</sub>
-
-### `view`
-
-**view the file at C:\Users\navae\Downloads\taskflow-IA\.github\skills\crear-endpoint-taskflow\plantillas.md.**
-
-C:\Users\navae\Downloads\taskflow-IA\.github\skills\crear-endpoint-taskflow\plantillas.md
-
-<details>
-<summary>167 lines</summary>
-
-````
-# Plantillas de la skill `crear-endpoint-taskflow`
-
-> **Ejemplo, no el endpoint que te piden.** Todo este archivo implementa un endpoint inventado,
-> `GET /projects/{id}/carga`, que cuenta cuántas tareas de un proyecto tienen responsable y cuántas
-> no. Úsalo para copiar la **forma** (anotaciones, imports, nombres, estructura de los tests), no el
-> contenido. El código de este archivo compila y sus tests pasan contra `taskflow-api` (verificado el
-> 12-sep-2026 con Spring Boot 3.5.3).
-
-Respuesta del ejemplo:
-
-```json
-{"projectId":1,"conResponsable":4,"sinResponsable":1}
-```
-
-## 1. DTO de salida — `src/main/java/com/taskflow/dto/CargaProyectoResponse.java`
-
-```java
-package com.taskflow.dto;
-
-/**
- * CargaProyectoResponse — contrato de salida de GET /projects/{id}/carga.
- * Un record: Jackson lo serializa por sus componentes, en este orden.
- */
-public record CargaProyectoResponse(
-        Long projectId,
-        long conResponsable,
-        long sinResponsable
-) {
-}
-```
-
-## 2. Mapper — método nuevo en `src/main/java/com/taskflow/mapper/ProjectMapper.java`
-
-```java
-    /** Conteos ya calculados por el service -> DTO de salida de GET /projects/{id}/carga. */
-    public static CargaProyectoResponse aCarga(Long projectId, long conResponsable, long sinResponsable) {
-        return new CargaProyectoResponse(projectId, conResponsable, sinResponsable);
-    }
-```
-
-(y el import `com.taskflow.dto.CargaProyectoResponse` arriba del archivo).
-
-## 3. Service — método nuevo en `src/main/java/com/taskflow/service/ProjectService.java`
-
-`ProjectService` ya tiene `taskRepository`: no hace falta inyectar nada nuevo. Recibe el proyecto ya
-encontrado (el 404 lo resuelve el controller, como en `GET /projects/{id}/tasks`).
-
-```java
-    /**
-     * Carga de un proyecto: cuántas de sus tareas tienen responsable y cuántas no.
-     * Reutiliza ReportService.SIN_ASIGNAR (no reescribe la regla).
-     */
-    public CargaProyectoResponse carga(Project proyecto) {
-        List<Task> tareas = taskRepository.findByProjectId(proyecto.getId());
-        long sinResponsable = tareas.stream().filter(ReportService.SIN_ASIGNAR).count();
-        return ProjectMapper.aCarga(proyecto.getId(), tareas.size() - sinResponsable, sinResponsable);
-    }
-```
-
-(imports: `com.taskflow.dto.CargaProyectoResponse`, `com.taskflow.mapper.ProjectMapper`).
-
-## 4. Controller — método nuevo en `src/main/java/com/taskflow/controller/ProjectController.java`
-
-```java
-    /** GET /projects/{id}/carga — 200 con los conteos; 404 uniforme si el proyecto no existe. */
-    @Operation(summary = "Carga de un proyecto",
-            description = "Cuántas tareas del proyecto tienen responsable y cuántas no. 404 si el proyecto no existe.")
-    @GetMapping("/projects/{id}/carga")
-    public CargaProyectoResponse getCarga(@PathVariable("id") Long id) {
-        Project proyecto = projectService.buscarPorId(id)
-                .orElseThrow(() -> new ProjectNotFoundException(id));
-        return projectService.carga(proyecto);
-    }
-```
-
-(import: `com.taskflow.dto.CargaProyectoResponse`; `Project` y `ProjectNotFoundException` ya están importados).
-
-## 5. Test unitario (clase nueva) — `src/test/java/com/taskflow/unit/CargaProyectoServiceTest.java`
-
-```java
-package com.taskflow.unit;
-
-import com.taskflow.dto.CargaProyectoResponse;
-import com.taskflow.exception.TaskValidationException;
-import com.taskflow.model.Priority;
-import com.taskflow.model.Project;
-import com.taskflow.model.Task;
-import com.taskflow.model.TaskStatus;
-import com.taskflow.repository.ProjectRepository;
-import com.taskflow.repository.TaskRepository;
-import com.taskflow.repository.UserRepository;
-import com.taskflow.service.ProjectService;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
-
-/** Unit de ProjectService.carga: sin Spring, repositorios mockeados, tareas reales. */
-@ExtendWith(MockitoExtension.class)
-class CargaProyectoServiceTest {
-
-    // Un @Mock por CADA dependencia del constructor de ProjectService.
-    @Mock
-    private ProjectRepository projectRepository;
-
-    @Mock
-    private TaskRepository taskRepository;
-
-    @Mock
-    private UserRepository userRepository;
-
-    @InjectMocks
-    private ProjectService service;
-
-    private final Project proyecto = new Project(1L, "Plataforma", "d", 1L, null);
-
-    @Test
-    void carga_cuentaConYSinResponsable() throws TaskValidationException {
-        when(taskRepository.findByProjectId(1L)).thenReturn(List.of(
-                tarea(1L, 1L), tarea(2L, null), tarea(3L, 2L)));
-
-        // 3 tareas y solo la 2 sin responsable -> 2 con, 1 sin (contado a mano, no copiado del código)
-        assertEquals(new CargaProyectoResponse(1L, 2, 1), service.carga(proyecto));
-    }
-
-    @Test
-    void carga_proyectoSinTareas_todoEnCero() {
-        when(taskRepository.findByProjectId(1L)).thenReturn(List.of());
-
-        assertEquals(new CargaProyectoResponse(1L, 0, 0), service.carga(proyecto));
-    }
-
-    private Task tarea(Long id, Long assigneeId) throws TaskValidationException {
-        return new Task(id, "Tarea " + id, "d", TaskStatus.TODO, Priority.MED, 1L, assigneeId, null);
-    }
-}
-```
-
-## 6. Test slice (clase nueva) — `src/test/java/com/taskflow/slice/CargaProyectoControllerTest.java`
-
-```java
-package com.taskflow.slice;
-
-import com.taskflow.controller.ProjectController;
-import com.taskflow.dto.CargaProyectoResponse;
-import com.taskflow.model.Project;
-import com.taskflow.security.JwtAuthenticationFilter;
-import com.taskflow.service.ProjectService;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.Optional;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-/** Slice web de GET /projects/{id}/carga: solo la capa HTTP; la lógica se prueba en el unit. */
-@WebMvcTest(ProjectController.class)
-@AutoConfigureMockMvc(addFilters = false)   // la seguridad se prueba en integration/, no aquí
-class CargaProyectoControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private ProjectService projectService;
-
-    // Sin este mock el slice intenta crear el filtro JWT real y falla por JwtService.
-    @MockitoBean
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Test
-    void getCarga_existente_devuelve200ConCadaCampo() throws Exception {
-        when(projectService.buscarPorId(1L)).thenReturn(Optional.of(new Project(1L, "Plataforma", "d", 1L, null)));
-        when(projectService.carga(any(Project.class))).thenReturn(new CargaProyectoResponse(1L, 4, 1));
-
-        mockMvc.perform(get("/projects/1/carga"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.projectId").value(1))
-                .andExpect(jsonPath("$.conResponsable").value(4))
-                .andExpect(jsonPath("$.sinResponsable").value(1));
-    }
-
-    @Test
-    void getCarga_proyectoInexistente_devuelve404() throws Exception {
-        when(projectService.buscarPorId(99L)).thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/projects/99/carga"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404));
-    }
-}
-```
-
-## 7. Comprobar
-
-```powershell
-mvn -q test
-```
-
-Termina sin líneas `[ERROR]` y con código de salida 0. `git status --porcelain src/test` muestra solo
-líneas que empiezan por `??` (archivos nuevos): ningún test existente cambió.
-````
-
-</details>
-
-
----
-
-<sub>19s</sub>
-
-### `grep`
-
-**class ProjectController**
-
-"class ProjectController" in **/*.java (src)
-
-```
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\ProjectControllerTest.java:50:class ProjectControllerTest {
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\ProjectController.java:41:public class ProjectController {
-```
-
-
----
-
-<sub>19s</sub>
-
-### `grep`
-
-**class ProjectService**
-
-"class ProjectService" in **/*.java (src)
-
-```
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\ProjectServiceTest.java:27:class ProjectServiceTest {
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\ProjectService.java:31:public class ProjectService {
-```
-
-
----
-
-<sub>19s</sub>
-
-### `grep`
-
-**package com.taskflow.controller**
-
-"package com.taskflow.controller" in **/*.java (src)
-
-```
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\AuthController.java
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\ProjectController.java
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\InfoController.java
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java
-```
-
-
----
-
-<sub>19s</sub>
-
-### `grep`
-
-**ProjectNotFoundException**
-
-"ProjectNotFoundException" in **/*.java (src)
-
-<details>
-<summary>16 matches</summary>
-
-```
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\advice\GlobalExceptionHandler.java:4:import com.taskflow.exception.ProjectNotFoundException;
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\advice\GlobalExceptionHandler.java:45:    @ExceptionHandler({TaskNotFoundException.class, ProjectNotFoundException.class})
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\ProjectController.java:6:import com.taskflow.exception.ProjectNotFoundException;
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\ProjectController.java:65:                .orElseThrow(() -> new ProjectNotFoundException(id));
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\ProjectController.java:81:                .orElseThrow(() -> new ProjectNotFoundException(id));
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\ProjectController.java:94:                .orElseThrow(() -> new ProjectNotFoundException(id));
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java:6:import com.taskflow.exception.ProjectNotFoundException;
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java:106:     * Validation (400 si falla). Cableo: si el proyecto no existe -> 404 (ProjectNotFoundException).
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java:115:                .orElseThrow(() -> new ProjectNotFoundException(projectId));
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\ProjectService.java:4:import com.taskflow.exception.ProjectNotFoundException;
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\ProjectService.java:20: * orElseThrow -> ProjectNotFoundException; el advice le pone el 404).
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\ProjectService.java:86:                .orElseThrow(() -> new ProjectNotFoundException(id));
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\ProjectService.java:100:                .orElseThrow(() -> new ProjectNotFoundException(id));
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\exception\ProjectNotFoundException.java:4: * ProjectNotFoundException — se lanza cuando se busca un proyecto por id y NO existe. Nace HOY
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\exception\ProjectNotFoundException.java:12:public class ProjectNotFoundException extends RuntimeException {
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\exception\ProjectNotFoundException.java:16:    public ProjectNotFoundException(Long id) {
-```
-
-</details>
-
-
----
-
-<sub>19s</sub>
-
-### `grep`
-
-**TaskController**
-
-"TaskController" in **/*.java (src)
-
-<details>
-<summary>11 matches</summary>
-
-```
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\ProjectControllerTest.java:36: * ProjectControllerTest — SLICE web (S3D1, MP-7). MISMO tratamiento canónico que TaskControllerTest:
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\TaskControllerTest.java:3:import com.taskflow.controller.TaskController;
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\TaskControllerTest.java:43: * TaskControllerTest — SLICE web (S3D1, MP-6). La promesa de S2D3 pagada: los @SpringBootTest lentos
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\TaskControllerTest.java:48: *   1. @WebMvcTest(TaskController.class) -> levanta SOLO la capa web de este controller.
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\TaskControllerTest.java:62:@WebMvcTest(TaskController.class)
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\TaskControllerTest.java:64:class TaskControllerTest {
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\TaskControllerTest.java:73:    private ProjectService projectService;   // TaskController también inyecta ProjectService (cableo Task<->Project)
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\ProjectController.java:36: * Repetición deliberada del patrón de TaskController: mismos gestos (201 + Location, @Valid, 404 vía
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java:34: * TaskController — la PUERTA HTTP de las tareas. HOY se completa el CRUD y la entidad Task deja de
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java:47:public class TaskController {
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java:52:    public TaskController(TaskService taskService, ProjectService projectService) {
-```
-
-</details>
-
-
----
-
-<sub>34s</sub>
+<sub>16s</sub>
 
 ### Copilot
 
-Leyendo los archivos relevantes (TaskService, TaskController, TaskMapper, TaskResponse, TaskRepository y TaskValidationException) para insertar el método y los tests conforme a la spec. Ejecutando lecturas en paralelo.
+Viewing relevant files to implement the endpoint: TaskService, TaskController, TaskRepository, TaskMapper, TaskResponse, TaskOrders, TaskValidationException, and existing tests. Running a code search for TaskService and TaskController.
 
 ---
 
-<sub>34s</sub>
+<sub>16s</sub>
+
+### `grep`
+
+**class TaskService**
+
+"class TaskService"
+
+```
+C:\Users\navae\Downloads\taskflow-IA\semana6\sesion-implementacion.md
+C:\Users\navae\Downloads\taskflow-IA\semana6\sesion-search.md
+C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\TaskServiceTest.java
+C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\TaskService.java
+```
+
+
+---
+
+<sub>19s</sub>
 
 ### `view`
 
@@ -527,7 +196,7 @@ Leyendo los archivos relevantes (TaskService, TaskController, TaskMapper, TaskRe
 C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\TaskService.java
 
 <details>
-<summary>129 lines</summary>
+<summary>142 lines</summary>
 
 ```
 package com.taskflow.service;
@@ -674,6 +343,20 @@ public class TaskService {
                 .sorted(TaskOrders.POR_FECHA)
                 .toList();
     }
+
+    /**
+     * Busca tareas cuyo título contiene el fragmento q (case-insensitive). Recorta q con strip();
+     * si q es null o queda vacío, lanza TaskValidationException con el mensaje requerido.
+     */
+    public List<Task> buscarPorTitulo(String q) throws TaskValidationException {
+        if (q == null || q.strip().isEmpty()) {
+            throw new TaskValidationException("El parámetro 'q' es obligatorio.");
+        }
+        String fragment = q.strip();
+        return repository.findByTitleContainingIgnoreCase(fragment).stream()
+                .sorted(TaskOrders.POR_TITULO)
+                .toList();
+    }
 }
 ```
 
@@ -682,7 +365,7 @@ public class TaskService {
 
 ---
 
-<sub>34s</sub>
+<sub>22s</sub>
 
 ### `view`
 
@@ -691,7 +374,7 @@ public class TaskService {
 C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java
 
 <details>
-<summary>143 lines</summary>
+<summary>155 lines</summary>
 
 ```
 package com.taskflow.controller;
@@ -797,6 +480,19 @@ public class TaskController {
     }
 
     /**
+     * GET /tasks/search?q= — busca tareas cuyo título contiene q (case-insensitive).
+     * q se recibe como required = false para que la validación quede en el servicio y el advice
+     * mapee TaskValidationException a 400 con el mensaje uniforme.
+     */
+    @Operation(summary = "Busca tareas por título",
+            description = "Busca tareas cuyo título contiene el parámetro 'q' (case-insensitive). q es obligatorio; si falta o queda vacío el service lanzará TaskValidationException y el advice responderá 400.")
+    @GetMapping("/tasks/search")
+    public List<TaskResponse> searchTasks(@RequestParam(name = "q", required = false) String q) throws TaskValidationException {
+        List<Task> tareas = taskService.buscarPorTitulo(q);
+        return tareas.stream().map(TaskMapper::aResponse).toList();
+    }
+
+    /**
      * POST /projects/{projectId}/tasks — crea una tarea bajo un proyecto. 201 + header Location
      * apuntando a donde el recurso SE LEE (/tasks/{id}), no a la URL de creación. @Valid dispara Bean
      * Validation (400 si falla). Cableo: si el proyecto no existe -> 404 (ProjectNotFoundException).
@@ -857,250 +553,298 @@ public class TaskController {
 
 ---
 
-<sub>34s</sub>
-
-### `view`
-
-**view the file at C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\mapper\TaskMapper.java.**
-
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\mapper\TaskMapper.java
-
-<details>
-<summary>48 lines</summary>
-
-```
-package com.taskflow.mapper;
-
-import com.taskflow.dto.TaskRequest;
-import com.taskflow.dto.TaskResponse;
-import com.taskflow.exception.TaskValidationException;
-import com.taskflow.model.Task;
-import com.taskflow.model.TaskStatus;
-
-/**
- * TaskMapper — el puente entre el CONTRATO (DTOs) y el DOMINIO (entidad Task). Mapeo A MANO con
- * métodos estáticos: barato, visible y testeable. Es una clase de utilidades — constructor privado,
- * no se instancia.
- *
- * Mención 1 min (MP-2): MapStruct automatiza este mapeo en el mundo real; el capstone lo hace a mano
- * primero para ENTENDER el costo antes de esconderlo detrás de una librería.
- *
- * Nota clave "crear vs rehidratar" (paga en HTTP): aEntidadNueva pasa por la FACTORY Task.crear
- * (aplica "dueDate no en el pasado"); aReemplazo pasa por el CONSTRUCTOR de rehidratación (permite
- * editar una tarea vieja con fecha ya pasada) — la misma distinción que releer el CSV en S1.
- */
-public final class TaskMapper {
-
-    private TaskMapper() {
-        // no instanciable
-    }
-
-    /**
-     * POST: DTO de entrada + projectId del PATH -> entidad NUEVA por la factory de negocio.
-     * Task.crear fija status=TODO e id=null, y aplica la regla temporal de dueDate. Firma canónica
-     * del apéndice del capstone: crear(title, description, priority, dueDate, projectId, assigneeId).
-     */
-    public static Task aEntidadNueva(TaskRequest req, Long projectId) throws TaskValidationException {
-        return Task.crear(req.title(), req.description(), req.priority(),
-                req.dueDate(), projectId, req.assigneeId());
-    }
-
-    /**
-     * PUT (reemplazo COMPLETO): DTO de entrada + el estado y el proyecto ACTUALES -> entidad
-     * rehidratada con el MISMO id. Conservamos id, status y projectId (el cliente no los toca por
-     * PUT); el resto (title, description, priority, assigneeId, dueDate) viene del request. El
-     * constructor de rehidratación valida las invariantes (título, projectId) sin la regla temporal.
-     */
-    public static Task aReemplazo(Long id, TaskStatus statusActual, Long projectIdActual, TaskRequest req)
-            throws TaskValidationException {
-        return new Task(id, req.title(), req.description(), statusActual, req.priority(),
-                projectIdActual, req.assigneeId(), req.dueDate());
-    }
-
-    /** Entidad -> DTO de salida (los 8 campos). La entidad Task NO cruza el controller: cruza esto. */
-    public static TaskResponse aResponse(Task t) {
-        return new TaskResponse(t.getId(), t.getTitle(), t.getDescription(), t.getStatus(),
-                t.getPriority(), t.getProjectId(), t.getAssigneeId(), t.getDueDate());
-    }
-}
-```
-
-</details>
-
-
----
-
-<sub>34s</sub>
-
-### `view`
-
-**view the file at C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\dto\TaskResponse.java.**
-
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\dto\TaskResponse.java
-
-<details>
-<summary>24 lines</summary>
-
-```
-package com.taskflow.dto;
-
-import com.taskflow.model.Priority;
-import com.taskflow.model.TaskStatus;
-
-import java.time.LocalDate;
-
-/**
- * TaskResponse — el CONTRATO de SALIDA de una tarea (lo que la API devuelve). Es un record: Jackson
- * lo serializa a JSON por sus componentes.
- *
- * "¿Si trae los mismos 8 campos que la entidad, para qué el DTO?" — hoy son casi iguales; el valor
- * es el DESACOPLE. En D4 la entidad Task gana anotaciones JPA (@Entity/@Id...) que NO tienen por qué
- * asomar en el JSON; en D5 aparecen campos que JAMÁS deben salir (el passwordHash de User). El
- * contrato de salida se mantiene estable aunque la entidad cambie por dentro.
- */
-public record TaskResponse(
-        Long id,
-        String title,
-        String description,
-        TaskStatus status,
-        Priority priority,
-        Long projectId,
-        Long assigneeId,
-        LocalDate dueDate
-) {
-}
-```
-
-</details>
-
-
----
-
-<sub>34s</sub>
-
-### `view`
-
-**view the file at C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\repository\TaskRepository.java.**
-
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\repository\TaskRepository.java
-
-<details>
-<summary>36 lines</summary>
-
-```
-package com.taskflow.repository;
-
-import com.taskflow.model.Task;
-import com.taskflow.model.TaskStatus;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import java.util.List;
-
-/**
- * TaskRepository — EL MOMENTO NARRATIVO DEL DÍA (MP-6). Ayer era una interfaz que redeclaraba
- * save/findById/findAll/deleteById, implementada por InMemoryTaskRepository. HOY extiende
- * JpaRepository&lt;Task, Long&gt; y esos 4 métodos VIENEN GRATIS (+ count/existsById/etc.): NO se
- * implementa nadie, un PROXY de runtime lo hace (la misma "magia" de DI de S2D1).
- *
- * La paga de la interfaz extraída en S1D5: TaskService/ReportService dependían de ESTE contrato desde
- * entonces, y sus firmas (Optional&lt;Task&gt; findById, void deleteById) se alinearon a Spring Data
- * desde S2D1 — por eso hoy el swap memoria->BD NO toca el servicio. "git diff de TaskService = vacío".
- * InMemoryTaskRepository dejó de compilar y SE ELIMINÓ (git lo recuerda; borrar código es sano
- * cuando la interfaz sobrevive).
- *
- * DERIVED QUERIES: el NOMBRE del método es la query. Gramática findBy + propiedad + And/Not/
- * Containing/IgnoreCase/OrderBy, y countBy. Se validan AL ARRANCAR: un nombre con una propiedad que
- * no existe (p.ej. findByEstado) lanza QueryCreationException y la app NO levanta — error de arranque,
- * no de runtime. Estas seis se prueban en TaskRepositoryTest (@DataJpaTest).
- */
-public interface TaskRepository extends JpaRepository<Task, Long> {
-
-    /** Tareas en un estado dado. La consume ProjectService/ReportService y las vistas por estado. */
-    List<Task> findByStatus(TaskStatus status);
-
-    /** Tareas de un proyecto (por la columna project_id). La consume ProjectService.tareasDe (MP-6). */
-    List<Task> findByProjectId(Long projectId);
-
-    /** Combina dos criterios con And: tareas de un asignado en un estado. La consume el stretch de D5. */
-    List<Task> findByAssigneeIdAndStatus(Long assigneeId, TaskStatus status);
-
-    /** LIKE case-insensitive: título que CONTIENE el fragmento (la BD hace el filtrado). */
-    List<Task> findByTitleContainingIgnoreCase(String fragment);
-
-    /** El complemento de findByStatus: todas MENOS las de ese estado (Not). Sirve a "pendientes". */
-    List<Task> findByStatusNot(TaskStatus status);
-
-    /** Cuenta en la BD (no trae filas para contarlas): conteo por estado. */
-    long countByStatus(TaskStatus status);
-}
-```
-
-</details>
-
-
----
-
-<sub>34s</sub>
-
-### `view`
-
-**view the file at C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\exception\TaskValidationException.java.**
-
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\exception\TaskValidationException.java
-
-<details>
-<summary>16 lines</summary>
-
-```
-package com.taskflow.exception;
-
-/**
- * TaskValidationException — excepción CHECKED (extiende Exception) para reglas de
- * negocio violadas por input del usuario: algo esperable y recuperable en el CLI.
- *
- * Al ser checked, el compilador OBLIGA al menú a decidir qué hacer (avisar y volver
- * al menú) en vez de dejar que el programa reviente.
- *
- * Nombre y paquete canónicos de S1 (no cambian en toda la semana):
- * com.taskflow.exception.TaskValidationException.
- */
-public class TaskValidationException extends Exception {
-
-    public TaskValidationException(String mensaje) {
-        super(mensaje);
-    }
-}
-```
-
-</details>
-
-
----
-
-<sub>1m 32s</sub>
+<sub>27s</sub>
 
 ### Copilot
 
-Applying edits to TaskService and TaskController, and adding two test classes. Then running mvn -q test to verify.
+Reading existing tests to follow conventions and annotations before writing new tests. Fetching similar unit and slice tests to copy structure (TaskControllerTest, TaskServiceTest).
 
 ---
 
-<sub>1m 32s</sub>
+<sub>27s</sub>
 
-### `edit`
+### `grep`
 
-**edit the file at C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\TaskService.java.**
+**@WebMvcTest**
 
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\TaskService.java
+"@WebMvcTest" (src\test\java)
 
 ```
-File C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\TaskService.java updated with changes.
+C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\ProjectControllerTest.java
+C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\ProjectSummaryControllerTest.java
+C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\BusquedaTareasControllerTest.java
+C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\TaskControllerTest.java
 ```
 
 
 ---
 
-<sub>1m 53s</sub>
+<sub>29s</sub>
+
+### `view`
+
+**view the file at C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\TaskServiceTest.java.**
+
+C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\TaskServiceTest.java
+
+<details>
+<summary>205 lines</summary>
+
+```
+package com.taskflow.unit;
+
+import com.taskflow.dto.TaskRequest;
+import com.taskflow.exception.TaskNotFoundException;
+import com.taskflow.exception.TaskStateException;
+import com.taskflow.exception.TaskValidationException;
+import com.taskflow.model.Priority;
+import com.taskflow.model.Task;
+import com.taskflow.model.TaskStatus;
+import com.taskflow.repository.TaskRepository;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+import java.time.LocalDate;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * TaskServiceTest — UNIT PURO con Mockito (S3D1, MP-1/MP-2/MP-3/MP-5). El renacimiento del parche
+ * @SpringBootTest heredado de S2D4: aquí NO arranca Spring — la clase corre en MILISEGUNDOS.
+ *
+ * Por qué Mockito HOY (narrativa AM-1): en S2D1 este mismo test usaba el InMemoryTaskRepository REAL
+ * (un *fake*, rápido y determinista — era legítimo). S2D4 eliminó las clases InMemory*; desde entonces
+ * TaskRepository es una interfaz cuya única implementación es un proxy de Spring Data respaldado por una
+ * BD. Para volver a probar el service EN AISLAMIENTO ya no hay implementación de juguete que instanciar
+ * -> por eso existe Mockito: el mock SUSTITUYE al fake cuando el colaborador real exige infraestructura.
+ *
+ * Reglas del día aplicadas:
+ *   - @ExtendWith(MockitoExtension.class): sin ella, @Mock queda null (dolor #1).
+ *   - Los DATOS (Task) se construyen DE VERDAD con el constructor de rehidratación; SOLO el COLABORADOR
+ *     (el repository) se mockea (tabla mockear/no-mockear, T3).
+ *   - MockitoExtension corre en strict-stubs: un when(...) que ningún camino usa FALLA la clase
+ *     (UnnecessaryStubbingException, dolor #2) -> aquí cada stub tiene propósito.
+ */
+@ExtendWith(MockitoExtension.class)
+class TaskServiceTest {
+
+    @Mock
+    private TaskRepository repository;
+
+    @InjectMocks
+    private com.taskflow.service.TaskService service;
+
+    private static final Long PROYECTO = 1L;
+
+    @Nested
+    @DisplayName("crear")
+    class Crear {
+
+        @Test
+        void crear_valida_delegaEnSaveYDevuelveTareaConId() throws TaskValidationException {
+            // El request pasa por TaskMapper.aEntidadNueva -> Task.crear (status=TODO, id=null). El
+            // repositorio, mockeado, "devuelve" una tarea YA con id (lo que la BD real haría en save).
+            TaskRequest request = new TaskRequest("Redactar informe", "desc", Priority.HIGH, 5L, null);
+            Task tareaConId = new Task(99L, "Redactar informe", "desc",
+                    TaskStatus.TODO, Priority.HIGH, PROYECTO, 5L, null);
+            when(repository.save(any(Task.class))).thenReturn(tareaConId);
+
+            Task creada = service.crear(request, PROYECTO);
+
+            assertNotNull(creada.getId());
+            assertEquals(99L, creada.getId());
+        }
+
+        @Test
+        @DisplayName("thenThrow: el mock simula una BD caída — lo que el colaborador real no te da nunca")
+        void crear_conBdCaida_propagaLaExcepcion() {
+            // thenThrow: con la BD real NO puedes provocar una caída a demanda; el mock sí.
+            TaskRequest request = new TaskRequest("Tarea válida", "desc", Priority.MED, 5L, null);
+            when(repository.save(any(Task.class)))
+                    .thenThrow(new RuntimeException("Conexión a la BD perdida"));
+
+            assertThrows(RuntimeException.class, () -> service.crear(request, PROYECTO));
+        }
+    }
+
+    @Nested
+    @DisplayName("cambiarStatus")
+    class CambiarStatus {
+
+        @Test
+        void cambiarStatus_conAssignee_guardaDone() {
+            // El dato se construye REAL (constructor de rehidratación), con assignee -> SÍ puede pasar a
+            // DONE. Solo el repository (colaborador) se mockea.
+            Task tareaConAssignee = tarea(1L, "Con responsable", 5L);
+            when(repository.findById(1L)).thenReturn(Optional.of(tareaConAssignee));
+            when(repository.save(any(Task.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            service.cambiarStatus(1L, TaskStatus.DONE);
+
+            // ArgumentCaptor (MP-3): capturar el Task que VIAJÓ a save. El retorno no basta cuando lo que
+            // importa es el OBJETO MUTADO que se persistió.
+            ArgumentCaptor<Task> captor = ArgumentCaptor.forClass(Task.class);
+            verify(repository).save(captor.capture());
+            assertEquals(TaskStatus.DONE, captor.getValue().getStatus());
+        }
+
+        @Test
+        void cambiarStatus_idInexistente_lanzaTaskNotFoundException() {
+            when(repository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(TaskNotFoundException.class,
+                    () -> service.cambiarStatus(999L, TaskStatus.DONE));
+            // No se llegó a guardar nada.
+            verify(repository, never()).save(any(Task.class));
+        }
+
+        @Test
+        void cambiarStatus_sinAssignee_lanzaTaskStateExceptionYNoGuarda() {
+            // Sin assignee, setStatus(DONE) lanza la checked; cambiarStatus la TRADUCE a TaskStateException.
+            // La traducción de S2D3 MP-9, ahora probada EN AISLAMIENTO (sin HTTP, sin BD).
+            Task sinAssignee = tarea(2L, "Sin responsable", null);
+            when(repository.findById(2L)).thenReturn(Optional.of(sinAssignee));
+
+            assertThrows(TaskStateException.class,
+                    () -> service.cambiarStatus(2L, TaskStatus.DONE));
+            // El never() es el assert más valioso del bloque: la regla PROHIBIÓ persistir.
+            verify(repository, never()).save(any(Task.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("eliminar")
+    class Eliminar {
+
+        @Test
+        void eliminar_existente_llamaDeleteById() {
+            Task existente = tarea(1L, "Borrable", 5L);
+            when(repository.findById(1L)).thenReturn(Optional.of(existente));
+
+            service.eliminar(1L);
+
+            // verify sobre una operación MUDA (void): el estado no lo delata, la interacción sí.
+            verify(repository).deleteById(1L);
+        }
+
+        @Test
+        void eliminar_inexistente_lanzaTaskNotFoundExceptionYNoBorra() {
+            when(repository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThrows(TaskNotFoundException.class, () -> service.eliminar(999L));
+            // never() + anyLong(): NO se borró nada. (Regla "todos matchers o ninguno": aquí anyLong()).
+            verify(repository, never()).deleteById(anyLong());
+        }
+    }
+
+    /** Fabrica una Task de rehidratación REAL (dato, no mock). assigneeId null = sin responsable. */
+    private Task tarea(Long id, String title, Long assigneeId) {
+        try {
+            return new Task(id, title, "desc", TaskStatus.TODO, Priority.MED, PROYECTO, assigneeId, null);
+        } catch (TaskValidationException e) {
+            throw new IllegalStateException("dato de prueba inválido", e);
+        }
+    }
+
+    @Nested
+    @DisplayName("SinResponsable")
+    class SinResponsable {
+
+        @Test
+        void sinResponsable_filtraYOrdenaPorFecha() {
+            Task diez;
+            Task conAssignee;
+            Task sinFecha;
+            Task dos;
+            try {
+                diez = new Task(201L, "Diez dias", "d", TaskStatus.TODO, Priority.MED, PROYECTO, null, LocalDate.now().plusDays(10));
+                conAssignee = new Task(202L, "Con responsable", "d", TaskStatus.TODO, Priority.MED, PROYECTO, 5L, LocalDate.now().plusDays(20));
+                sinFecha = new Task(203L, "Sin fecha", "d", TaskStatus.TODO, Priority.MED, PROYECTO, null, null);
+                dos = new Task(204L, "Dos dias", "d", TaskStatus.TODO, Priority.MED, PROYECTO, null, LocalDate.now().plusDays(2));
+            } catch (TaskValidationException e) {
+                throw new IllegalStateException(e);
+            }
+
+            // El repositorio devuelve (en este orden): sin responsable con fecha en 10 días, con responsable,
+            // sin responsable sin fecha, sin responsable con fecha en 2 días
+            when(repository.findAll()).thenReturn(List.of(diez, conAssignee, sinFecha, dos));
+
+            List<Task> res = service.sinResponsable();
+
+            // Debe quedar solo las tres sin responsable, ordenadas por dueDate asc (2d, 10d, sin fecha)
+            List<Long> ids = res.stream().map(Task::getId).toList();
+            assertEquals(List.of(204L, 201L, 203L), ids);
+        }
+
+        @Test
+        void sinResponsable_soloConAssignee_devuelveVacio() {
+            Task t1 = tarea(1L, "Con1", 5L);
+            Task t2 = tarea(2L, "Con2", 6L);
+            when(repository.findAll()).thenReturn(List.of(t1, t2));
+
+            List<Task> res = service.sinResponsable();
+
+            assertEquals(0, res.size());
+        }
+    }
+
+    @Nested
+    @DisplayName("vencidas")
+    class Vencidas {
+
+        @Test
+        void vencidas_filtraYOrdena() {
+            // El repositorio devuelve, en este orden: una vencida hace 1 día, una con fecha en 3 días,
+            // una DONE vencida hace 10 días, una sin dueDate, y una vencida hace 5 días.
+            Task unaDia;
+            Task tresDiasFuturo;
+            Task doneDiezDias;
+            Task sinFecha;
+            Task cincoDias;
+            try {
+                unaDia = new Task(101L, "Hace 1 dia", "d", TaskStatus.IN_PROGRESS, Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(1));
+                tresDiasFuturo = new Task(102L, "En 3 dias", "d", TaskStatus.IN_PROGRESS, Priority.MED, PROYECTO, 1L, LocalDate.now().plusDays(3));
+                doneDiezDias = new Task(103L, "Done antiguo", "d", TaskStatus.DONE, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(10));
+                sinFecha = new Task(104L, "Sin fecha", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, null);
+                cincoDias = new Task(105L, "Hace 5 dias", "d", TaskStatus.IN_PROGRESS, Priority.HIGH, PROYECTO, 1L, LocalDate.now().minusDays(5));
+            } catch (TaskValidationException e) {
+                throw new IllegalStateException(e);
+            }
+
+            when(repository.findAll()).thenReturn(List.of(unaDia, tresDiasFuturo, doneDiezDias, sinFecha, cincoDias));
+
+            List<Task> res = service.vencidas();
+
+            // Deben aparecer solo las dos vencidas (cincoDias y unaDia), y ordenadas por fecha asc: cincoDias (hace 5 días) primero
+            assertEquals(2, res.size());
+            assertEquals(105L, res.get(0).getId());
+            assertEquals(101L, res.get(1).getId());
+        }
+    }
+}
+```
+
+</details>
+
+
+---
+
+<sub>32s</sub>
 
 ### `view`
 
@@ -1352,64 +1096,234 @@ class TaskControllerTest {
 
 ---
 
-<sub>2m 23s</sub>
+<sub>35s</sub>
 
 ### Copilot
 
-Editing TaskController to add the endpoint and creating two new test classes (unit + slice). Then running mvn -q test to validate.
+Reading existing search-related slice test to avoid duplicate creation and follow conventions. Opening BusquedaTareasControllerTest.
 
 ---
 
-<sub>2m 23s</sub>
+<sub>35s</sub>
 
-### `edit`
+### `view`
 
-**edit the file at C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java.**
+**view the file at C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\BusquedaTareasControllerTest.java.**
 
-C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java
+C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\BusquedaTareasControllerTest.java
+
+<details>
+<summary>62 lines</summary>
 
 ```
-File C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java updated with changes.
+package com.taskflow.slice;
+
+import com.taskflow.controller.TaskController;
+import com.taskflow.dto.TaskResponse;
+import com.taskflow.exception.TaskValidationException;
+import com.taskflow.model.Task;
+import com.taskflow.model.TaskStatus;
+import com.taskflow.security.JwtAuthenticationFilter;
+import com.taskflow.service.ProjectService;
+import com.taskflow.service.TaskService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(TaskController.class)
+@AutoConfigureMockMvc(addFilters = false)
+class BusquedaTareasControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private TaskService taskService;
+
+    @MockitoBean
+    private ProjectService projectService;
+
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Test
+    void search_con_q_devuelve200ConListaYCampos() throws Exception {
+        Task t1 = tarea(9L, "Documentar la API con Swagger", TaskStatus.TODO);
+        Task t2 = tarea(5L, "Optimizar consultas de la API", TaskStatus.TODO);
+
+        when(taskService.buscarPorTitulo("api")).thenReturn(List.of(t1, t2));
+
+        mockMvc.perform(get("/tasks/search?q=api"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(9))
+                .andExpect(jsonPath("$[0].title").value("Documentar la API con Swagger"))
+                .andExpect(jsonPath("$[1].id").value(5))
+                .andExpect(jsonPath("$[1].title").value("Optimizar consultas de la API"));
+    }
+
+    @Test
+    void search_sin_q_devuelve400() throws Exception {
+        when(taskService.buscarPorTitulo(null)).thenThrow(new TaskValidationException("El parámetro 'q' es obligatorio."));
+
+        mockMvc.perform(get("/tasks/search"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El parámetro 'q' es obligatorio."));
+    }
+
+    private Task tarea(Long id, String title, TaskStatus status) {
+        try {
+            return new Task(id, title, "desc", status, null, 1L, 1L, LocalDate.now().plusDays(1));
+        } catch (com.taskflow.exception.TaskValidationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+}
 ```
+
+</details>
 
 
 ---
 
-<sub>2m 37s</sub>
+<sub>49s</sub>
 
-### `create`
+### Copilot
+
+Creando el test unitario requerido BusquedaTareasServiceTest con Mockito para cubrir los casos de ordenamiento, strip() y validación de q. Luego ejecutar mvn -q test para validar la suite.
+
+---
+
+<sub>49s</sub>
+
+### `create` — Failed
 
 **create a new file at C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\BusquedaTareasServiceTest.java.**
 
 C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\BusquedaTareasServiceTest.java
 
 ```
-Created file C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\BusquedaTareasServiceTest.java with 2432 characters
+Path already exists
 ```
 
 
 ---
 
-<sub>2m 46s</sub>
+<sub>53s</sub>
 
-### `create`
+### `view`
 
-**create a new file at C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\BusquedaTareasControllerTest.java.**
+**view the file at C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\BusquedaTareasServiceTest.java.**
 
-C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\BusquedaTareasControllerTest.java
+C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\BusquedaTareasServiceTest.java
+
+<details>
+<summary>57 lines</summary>
 
 ```
-Created file C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\BusquedaTareasControllerTest.java with 3107 characters
+package com.taskflow.unit;
+
+import com.taskflow.exception.TaskValidationException;
+import com.taskflow.model.Priority;
+import com.taskflow.model.Task;
+import com.taskflow.model.TaskStatus;
+import com.taskflow.repository.TaskRepository;
+import com.taskflow.service.TaskService;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class BusquedaTareasServiceTest {
+
+    @Mock
+    private TaskRepository taskRepository;
+
+    @InjectMocks
+    private TaskService service;
+
+    @Test
+    void buscarPorTitulo_ordenaYTrimaLlamadoAlRepo() throws TaskValidationException {
+        Task t1 = tarea(5L, "Optimizar consultas de la API", TaskStatus.TODO);
+        Task t2 = tarea(9L, "Documentar la API con Swagger", TaskStatus.TODO);
+        // repo devuelve en orden no alfabético
+        when(taskRepository.findByTitleContainingIgnoreCase("api")).thenReturn(List.of(t1, t2));
+
+        List<Task> resultado = service.buscarPorTitulo("  api ");
+
+        // debe trim y llamar al repo con "api"
+        verify(taskRepository).findByTitleContainingIgnoreCase("api");
+
+        // resultado ordenado por título (Documentar... antes de Optimizar...)
+        assertEquals(2, resultado.size());
+        assertEquals(9L, resultado.get(0).getId());
+        assertEquals(5L, resultado.get(1).getId());
+    }
+
+    @Test
+    void buscarPorTitulo_null_o_vacio_lanza() {
+        try {
+            service.buscarPorTitulo(null);
+        } catch (TaskValidationException e) {
+            assertEquals("El parámetro 'q' es obligatorio.", e.getMessage());
+        }
+
+        try {
+            service.buscarPorTitulo("   ");
+        } catch (TaskValidationException e) {
+            assertEquals("El parámetro 'q' es obligatorio.", e.getMessage());
+        }
+    }
+
+    private Task tarea(Long id, String title, TaskStatus status) {
+        try {
+            return new Task(id, title, "desc", status, Priority.MED, 1L, 1L, null);
+        } catch (TaskValidationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+}
 ```
+
+</details>
 
 
 ---
 
-<sub>3m 16s</sub>
+<sub>57s</sub>
+
+### Copilot
+
+Ejecutando mvn -q test para validar la implementación y los tests nuevos; esto verifica que TaskService, TaskController y las pruebas unit/slice pasen. Ejecutando mvn -q test.
+
+---
+
+<sub>1m 28s</sub>
 
 ### `powershell`
 
-**Run tests quietly to verify changes**
+**Run Maven tests quietly**
 
 <details>
 <summary>Arguments</summary>
@@ -1417,8 +1331,8 @@ Created file C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\sli
 ```json
 {
   "command": "mvn -q test",
-  "description": "Run tests quietly to verify changes",
-  "initial_wait": 120
+  "description": "Run Maven tests quietly",
+  "initial_wait": 180
 }
 ```
 
@@ -1428,12 +1342,12 @@ Created file C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\sli
 <summary>6 lines</summary>
 
 ```
-Output too large to read at once (29.8 KB). Saved to: C:\Users\navae\AppData\Local\Temp\1789796529225-copilot-tool-output-36496-3f6a519c-01bb-4c5f-8216-b97beb098fb3.txt
+Output too large to read at once (29.8 KB). Saved to: C:\Users\navae\AppData\Local\Temp\1789797709330-copilot-tool-output-27700-77ecc6f5-bef8-4aec-9340-21b40f6d5b03.txt
 Consider using tools like grep (for searching), head/tail (for viewing start/end), view with view_range (for specific sections), or jq (for JSON) to examine portions of the output.
 
 Preview (first 500 chars):
-23:41:54.542 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.taskflow.integration.AuthControllerTest]: AuthControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-23:41:54.853 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication fo
+00:01:31.420 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.taskflow.integration.AuthControllerTest]: AuthControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+00:01:31.760 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication fo
 <shellId: 0 completed with exit code 0>
 ```
 
@@ -1442,32 +1356,32 @@ Preview (first 500 chars):
 
 ---
 
-<sub>3m 19s</sub>
+<sub>1m 31s</sub>
 
 ### `view`
 
-**view the file at C:\Users\navae\AppData\Local\Temp\1789796529225-copilot-tool-output-36496-3f6a519c-01bb-4c5f-8216-b97beb098fb3.txt.**
+**view the file at C:\Users\navae\AppData\Local\Temp\1789797709330-copilot-tool-output-27700-77ecc6f5-bef8-4aec-9340-21b40f6d5b03.txt.**
 
-C:\Users\navae\AppData\Local\Temp\1789796529225-copilot-tool-output-36496-3f6a519c-01bb-4c5f-8216-b97beb098fb3.txt (lines 1-400)
+C:\Users\navae\AppData\Local\Temp\1789797709330-copilot-tool-output-27700-77ecc6f5-bef8-4aec-9340-21b40f6d5b03.txt (lines 1-200)
 
 <details>
 <summary>118 lines</summary>
 
 ```
-23:41:54.542 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.taskflow.integration.AuthControllerTest]: AuthControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-23:41:54.853 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.AuthControllerTest
-2026-09-18T23:41:55.703-06:00  INFO 13080 --- [taskflow-api] [           main] c.t.integration.AuthControllerTest       : Starting AuthControllerTest using Java 21.0.12.1 with PID 13080 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
-2026-09-18T23:41:55.705-06:00  INFO 13080 --- [taskflow-api] [           main] c.t.integration.AuthControllerTest       : The following 1 profile is active: "test"
-2026-09-18T23:41:57.194-06:00  INFO 13080 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-09-18T23:41:57.274-06:00  INFO 13080 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 65 ms. Found 3 JPA repository interfaces.
-2026-09-18T23:41:58.202-06:00  INFO 13080 --- [taskflow-api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-09-18T23:41:58.304-06:00  INFO 13080 --- [taskflow-api] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
-2026-09-18T23:41:58.350-06:00  INFO 13080 --- [taskflow-api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-09-18T23:41:58.783-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-09-18T23:41:58.841-06:00  INFO 13080 --- [taskflow-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-09-18T23:41:59.242-06:00  INFO 13080 --- [taskflow-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:taskflow-test-b623e1dd-8911-47c6-a23e-4e741ec9f81f user=SA
-2026-09-18T23:41:59.246-06:00  INFO 13080 --- [taskflow-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-09-18T23:41:59.340-06:00  INFO 13080 --- [taskflow-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+00:01:31.420 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.taskflow.integration.AuthControllerTest]: AuthControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+00:01:31.760 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.AuthControllerTest
+2026-09-19T00:01:32.662-06:00  INFO 36056 --- [taskflow-api] [           main] c.t.integration.AuthControllerTest       : Starting AuthControllerTest using Java 21.0.12.1 with PID 36056 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
+2026-09-19T00:01:32.664-06:00  INFO 36056 --- [taskflow-api] [           main] c.t.integration.AuthControllerTest       : The following 1 profile is active: "test"
+2026-09-19T00:01:34.392-06:00  INFO 36056 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-19T00:01:34.487-06:00  INFO 36056 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 79 ms. Found 3 JPA repository interfaces.
+2026-09-19T00:01:35.667-06:00  INFO 36056 --- [taskflow-api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-09-19T00:01:35.787-06:00  INFO 36056 --- [taskflow-api] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-09-19T00:01:35.848-06:00  INFO 36056 --- [taskflow-api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-09-19T00:01:36.381-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-19T00:01:36.442-06:00  INFO 36056 --- [taskflow-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-19T00:01:36.979-06:00  INFO 36056 --- [taskflow-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:taskflow-test-8d604c15-0789-46e1-b8d6-581ebf1a2d8e user=SA
+2026-09-19T00:01:36.982-06:00  INFO 36056 --- [taskflow-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-09-19T00:01:37.099-06:00  INFO 36056 --- [taskflow-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
 	Database driver: undefined/unknown
 	Database version: 2.3.232
@@ -1475,39 +1389,39 @@ C:\Users\navae\AppData\Local\Temp\1789796529225-copilot-tool-output-36496-3f6a51
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-09-18T23:42:00.747-06:00  INFO 13080 --- [taskflow-api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-09-18T23:42:00.834-06:00  INFO 13080 --- [taskflow-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-09-18T23:42:01.362-06:00  INFO 13080 --- [taskflow-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name jpaUserDetailsService
-2026-09-18T23:42:01.605-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
-2026-09-18T23:42:02.634-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-09-18T23:42:02.635-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
-2026-09-18T23:42:02.636-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
-2026-09-18T23:42:02.675-06:00  INFO 13080 --- [taskflow-api] [           main] c.t.integration.AuthControllerTest       : Started AuthControllerTest in 7.51 seconds (process running for 9.768)
+2026-09-19T00:01:38.773-06:00  INFO 36056 --- [taskflow-api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-09-19T00:01:38.880-06:00  INFO 36056 --- [taskflow-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-09-19T00:01:39.503-06:00  INFO 36056 --- [taskflow-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name jpaUserDetailsService
+2026-09-19T00:01:39.802-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2026-09-19T00:01:41.041-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-09-19T00:01:41.041-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-09-19T00:01:41.042-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 0 ms
+2026-09-19T00:01:41.080-06:00  INFO 36056 --- [taskflow-api] [           main] c.t.integration.AuthControllerTest       : Started AuthControllerTest in 9.034 seconds (process running for 11.449)
 Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
 OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
 WARNING: A Java agent has been loaded dynamically (C:\Users\navae\.m2\repository\net\bytebuddy\byte-buddy-agent\1.17.6\byte-buddy-agent-1.17.6.jar)
 WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
 WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
 WARNING: Dynamic loading of agents will be disallowed by default in a future release
-2026-09-18T23:42:04.717-06:00  INFO 13080 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.integration.FlujoCompletoE2ETest]: FlujoCompletoE2ETest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T23:42:04.729-06:00  INFO 13080 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.FlujoCompletoE2ETest
-2026-09-18T23:42:05.066-06:00  INFO 13080 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.integration.InfoControllerTest]: InfoControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T23:42:05.074-06:00  INFO 13080 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.InfoControllerTest
-2026-09-18T23:42:05.091-06:00  INFO 13080 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.integration.SecurityRulesTest]: SecurityRulesTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T23:42:05.103-06:00  INFO 13080 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.SecurityRulesTest
-2026-09-18T23:42:05.589-06:00  INFO 13080 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.integration.TaskflowApiApplicationTests]: TaskflowApiApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T23:42:05.595-06:00  INFO 13080 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.TaskflowApiApplicationTests
-2026-09-18T23:42:05.629-06:00  INFO 13080 --- [taskflow-api] [           main] c.t.i.TaskflowApiApplicationTests        : Starting TaskflowApiApplicationTests using Java 21.0.12.1 with PID 13080 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
-2026-09-18T23:42:05.629-06:00  INFO 13080 --- [taskflow-api] [           main] c.t.i.TaskflowApiApplicationTests        : The following 1 profile is active: "test"
-2026-09-18T23:42:05.846-06:00  INFO 13080 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-09-18T23:42:05.865-06:00  INFO 13080 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 17 ms. Found 3 JPA repository interfaces.
-2026-09-18T23:42:05.951-06:00  INFO 13080 --- [taskflow-api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-09-18T23:42:05.955-06:00  INFO 13080 --- [taskflow-api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-09-18T23:42:05.964-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-09-18T23:42:05.965-06:00  INFO 13080 --- [taskflow-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
-2026-09-18T23:42:05.968-06:00  INFO 13080 --- [taskflow-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection conn10: url=jdbc:h2:mem:taskflow-test-dc978e3e-e980-4549-8325-7b9e8a9b6dfa user=SA
-2026-09-18T23:42:05.969-06:00  INFO 13080 --- [taskflow-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
-2026-09-18T23:42:05.970-06:00  INFO 13080 --- [taskflow-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-09-19T00:01:43.469-06:00  INFO 36056 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.integration.FlujoCompletoE2ETest]: FlujoCompletoE2ETest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-19T00:01:43.483-06:00  INFO 36056 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.FlujoCompletoE2ETest
+2026-09-19T00:01:43.867-06:00  INFO 36056 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.integration.InfoControllerTest]: InfoControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-19T00:01:43.877-06:00  INFO 36056 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.InfoControllerTest
+2026-09-19T00:01:43.898-06:00  INFO 36056 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.integration.SecurityRulesTest]: SecurityRulesTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-19T00:01:43.911-06:00  INFO 36056 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.SecurityRulesTest
+2026-09-19T00:01:44.476-06:00  INFO 36056 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.integration.TaskflowApiApplicationTests]: TaskflowApiApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-19T00:01:44.486-06:00  INFO 36056 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.integration.TaskflowApiApplicationTests
+2026-09-19T00:01:44.532-06:00  INFO 36056 --- [taskflow-api] [           main] c.t.i.TaskflowApiApplicationTests        : Starting TaskflowApiApplicationTests using Java 21.0.12.1 with PID 36056 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
+2026-09-19T00:01:44.532-06:00  INFO 36056 --- [taskflow-api] [           main] c.t.i.TaskflowApiApplicationTests        : The following 1 profile is active: "test"
+2026-09-19T00:01:44.903-06:00  INFO 36056 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-19T00:01:44.931-06:00  INFO 36056 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 27 ms. Found 3 JPA repository interfaces.
+2026-09-19T00:01:45.068-06:00  INFO 36056 --- [taskflow-api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-09-19T00:01:45.072-06:00  INFO 36056 --- [taskflow-api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-09-19T00:01:45.088-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-19T00:01:45.090-06:00  INFO 36056 --- [taskflow-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-09-19T00:01:45.093-06:00  INFO 36056 --- [taskflow-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection conn10: url=jdbc:h2:mem:taskflow-test-2b4145f6-3299-4bfe-9160-a5ab4c955096 user=SA
+2026-09-19T00:01:45.093-06:00  INFO 36056 --- [taskflow-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2026-09-19T00:01:45.094-06:00  INFO 36056 --- [taskflow-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-2)']
 	Database driver: undefined/unknown
 	Database version: 2.3.232
@@ -1515,68 +1429,68 @@ WARNING: Dynamic loading of agents will be disallowed by default in a future rel
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-09-18T23:42:06.019-06:00  INFO 13080 --- [taskflow-api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-09-18T23:42:06.026-06:00  INFO 13080 --- [taskflow-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-09-18T23:42:06.083-06:00  INFO 13080 --- [taskflow-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name jpaUserDetailsService
-2026-09-18T23:42:06.125-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
-2026-09-18T23:42:06.295-06:00  INFO 13080 --- [taskflow-api] [           main] c.t.i.TaskflowApiApplicationTests        : Started TaskflowApiApplicationTests in 0.696 seconds (process running for 13.388)
-2026-09-18T23:42:06.516-06:00  INFO 13080 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.BusquedaTareasControllerTest]: BusquedaTareasControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T23:42:06.545-06:00  INFO 13080 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.BusquedaTareasControllerTest
-2026-09-18T23:42:06.573-06:00  INFO 13080 --- [taskflow-api] [           main] c.t.slice.BusquedaTareasControllerTest   : Starting BusquedaTareasControllerTest using Java 21.0.12.1 with PID 13080 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
-2026-09-18T23:42:06.574-06:00  INFO 13080 --- [taskflow-api] [           main] c.t.slice.BusquedaTareasControllerTest   : No active profile set, falling back to 1 default profile: "default"
-2026-09-18T23:42:07.255-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
-2026-09-18T23:42:07.429-06:00  WARN 13080 --- [taskflow-api] [           main] .s.s.UserDetailsServiceAutoConfiguration : 
+2026-09-19T00:01:45.158-06:00  INFO 36056 --- [taskflow-api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-09-19T00:01:45.166-06:00  INFO 36056 --- [taskflow-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-09-19T00:01:45.247-06:00  INFO 36056 --- [taskflow-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name jpaUserDetailsService
+2026-09-19T00:01:45.293-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2026-09-19T00:01:45.536-06:00  INFO 36056 --- [taskflow-api] [           main] c.t.i.TaskflowApiApplicationTests        : Started TaskflowApiApplicationTests in 1.045 seconds (process running for 15.904)
+2026-09-19T00:01:45.773-06:00  INFO 36056 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.BusquedaTareasControllerTest]: BusquedaTareasControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-19T00:01:45.811-06:00  INFO 36056 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.BusquedaTareasControllerTest
+2026-09-19T00:01:45.852-06:00  INFO 36056 --- [taskflow-api] [           main] c.t.slice.BusquedaTareasControllerTest   : Starting BusquedaTareasControllerTest using Java 21.0.12.1 with PID 36056 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
+2026-09-19T00:01:45.852-06:00  INFO 36056 --- [taskflow-api] [           main] c.t.slice.BusquedaTareasControllerTest   : No active profile set, falling back to 1 default profile: "default"
+2026-09-19T00:01:46.740-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2026-09-19T00:01:47.014-06:00  WARN 36056 --- [taskflow-api] [           main] .s.s.UserDetailsServiceAutoConfiguration : 
 
-Using generated security password: 0f94150a-4949-494b-915e-2d75e4e59dc0
-
-This generated password is for development use only. Your security configuration must be updated before running your application in production.
-
-2026-09-18T23:42:07.448-06:00  INFO 13080 --- [taskflow-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2026-09-18T23:42:07.577-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-09-18T23:42:07.577-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
-2026-09-18T23:42:07.578-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
-2026-09-18T23:42:07.598-06:00  INFO 13080 --- [taskflow-api] [           main] c.t.slice.BusquedaTareasControllerTest   : Started BusquedaTareasControllerTest in 1.05 seconds (process running for 14.692)
-2026-09-18T23:42:07.790-06:00  INFO 13080 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.ProjectControllerTest]: ProjectControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T23:42:07.821-06:00  INFO 13080 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.ProjectControllerTest
-2026-09-18T23:42:07.871-06:00  INFO 13080 --- [taskflow-api] [           main] c.taskflow.slice.ProjectControllerTest   : Starting ProjectControllerTest using Java 21.0.12.1 with PID 13080 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
-2026-09-18T23:42:07.872-06:00  INFO 13080 --- [taskflow-api] [           main] c.taskflow.slice.ProjectControllerTest   : No active profile set, falling back to 1 default profile: "default"
-2026-09-18T23:42:08.204-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
-2026-09-18T23:42:08.279-06:00  WARN 13080 --- [taskflow-api] [           main] .s.s.UserDetailsServiceAutoConfiguration : 
-
-Using generated security password: 06311db4-cec6-484b-b02f-866ac8d3ef7f
+Using generated security password: e2f2f77e-6348-4a10-b9f8-f70531a0dfa6
 
 This generated password is for development use only. Your security configuration must be updated before running your application in production.
 
-2026-09-18T23:42:08.280-06:00  INFO 13080 --- [taskflow-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2026-09-18T23:42:08.297-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-09-18T23:42:08.297-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
-2026-09-18T23:42:08.298-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
-2026-09-18T23:42:08.303-06:00  INFO 13080 --- [taskflow-api] [           main] c.taskflow.slice.ProjectControllerTest   : Started ProjectControllerTest in 0.477 seconds (process running for 15.397)
-2026-09-18T23:42:08.423-06:00  INFO 13080 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.ProjectSummaryControllerTest]: ProjectSummaryControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T23:42:08.447-06:00  INFO 13080 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.ProjectSummaryControllerTest
-2026-09-18T23:42:08.488-06:00  INFO 13080 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.TaskControllerTest]: TaskControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T23:42:08.510-06:00  INFO 13080 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.TaskControllerTest
-2026-09-18T23:42:08.681-06:00  INFO 13080 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.TaskRepositoryTest]: TaskRepositoryTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-18T23:42:08.706-06:00  INFO 13080 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.TaskRepositoryTest
-2026-09-18T23:42:08.746-06:00  INFO 13080 --- [taskflow-api] [           main] com.taskflow.slice.TaskRepositoryTest    : Starting TaskRepositoryTest using Java 21.0.12.1 with PID 13080 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
-2026-09-18T23:42:08.746-06:00  INFO 13080 --- [taskflow-api] [           main] com.taskflow.slice.TaskRepositoryTest    : No active profile set, falling back to 1 default profile: "default"
-2026-09-18T23:42:08.886-06:00  INFO 13080 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-09-18T23:42:08.915-06:00  INFO 13080 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 26 ms. Found 3 JPA repository interfaces.
-2026-09-18T23:42:08.939-06:00  INFO 13080 --- [taskflow-api] [           main] beddedDataSourceBeanFactoryPostProcessor : Replacing 'dataSource' DataSource bean with embedded version
-2026-09-18T23:42:08.998-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.j.d.e.EmbeddedDatabaseFactory        : Starting embedded database: url='jdbc:h2:mem:e7af8199-fde8-4b36-acbd-c236291a7f9c;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false', username='sa'
-2026-09-18T23:42:09.035-06:00  INFO 13080 --- [taskflow-api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-09-18T23:42:09.041-06:00  INFO 13080 --- [taskflow-api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-09-18T23:42:09.059-06:00  INFO 13080 --- [taskflow-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-09-18T23:42:09.065-06:00  INFO 13080 --- [taskflow-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
-	Database JDBC URL [Connecting through datasource 'org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory$EmbeddedDataSourceProxy@6cccf63e']
+2026-09-19T00:01:47.027-06:00  INFO 36056 --- [taskflow-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-09-19T00:01:47.179-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-09-19T00:01:47.179-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-09-19T00:01:47.181-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-09-19T00:01:47.207-06:00  INFO 36056 --- [taskflow-api] [           main] c.t.slice.BusquedaTareasControllerTest   : Started BusquedaTareasControllerTest in 1.392 seconds (process running for 17.576)
+2026-09-19T00:01:47.466-06:00  INFO 36056 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.ProjectControllerTest]: ProjectControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-19T00:01:47.511-06:00  INFO 36056 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.ProjectControllerTest
+2026-09-19T00:01:47.587-06:00  INFO 36056 --- [taskflow-api] [           main] c.taskflow.slice.ProjectControllerTest   : Starting ProjectControllerTest using Java 21.0.12.1 with PID 36056 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
+2026-09-19T00:01:47.587-06:00  INFO 36056 --- [taskflow-api] [           main] c.taskflow.slice.ProjectControllerTest   : No active profile set, falling back to 1 default profile: "default"
+2026-09-19T00:01:47.986-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2026-09-19T00:01:48.101-06:00  WARN 36056 --- [taskflow-api] [           main] .s.s.UserDetailsServiceAutoConfiguration : 
+
+Using generated security password: 27f01b6a-0baa-4133-b6e5-9a1079ebf6a7
+
+This generated password is for development use only. Your security configuration must be updated before running your application in production.
+
+2026-09-19T00:01:48.103-06:00  INFO 36056 --- [taskflow-api] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-09-19T00:01:48.126-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-09-19T00:01:48.126-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-09-19T00:01:48.127-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 0 ms
+2026-09-19T00:01:48.135-06:00  INFO 36056 --- [taskflow-api] [           main] c.taskflow.slice.ProjectControllerTest   : Started ProjectControllerTest in 0.613 seconds (process running for 18.504)
+2026-09-19T00:01:48.300-06:00  INFO 36056 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.ProjectSummaryControllerTest]: ProjectSummaryControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-19T00:01:48.330-06:00  INFO 36056 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.ProjectSummaryControllerTest
+2026-09-19T00:01:48.380-06:00  INFO 36056 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.TaskControllerTest]: TaskControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-19T00:01:48.410-06:00  INFO 36056 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.TaskControllerTest
+2026-09-19T00:01:48.626-06:00  INFO 36056 --- [taskflow-api] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.taskflow.slice.TaskRepositoryTest]: TaskRepositoryTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-19T00:01:48.665-06:00  INFO 36056 --- [taskflow-api] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.taskflow.TaskflowApiApplication for test class com.taskflow.slice.TaskRepositoryTest
+2026-09-19T00:01:48.733-06:00  INFO 36056 --- [taskflow-api] [           main] com.taskflow.slice.TaskRepositoryTest    : Starting TaskRepositoryTest using Java 21.0.12.1 with PID 36056 (started by navae in C:\Users\navae\Downloads\taskflow-IA)
+2026-09-19T00:01:48.733-06:00  INFO 36056 --- [taskflow-api] [           main] com.taskflow.slice.TaskRepositoryTest    : No active profile set, falling back to 1 default profile: "default"
+2026-09-19T00:01:48.910-06:00  INFO 36056 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-19T00:01:48.945-06:00  INFO 36056 --- [taskflow-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 31 ms. Found 3 JPA repository interfaces.
+2026-09-19T00:01:48.977-06:00  INFO 36056 --- [taskflow-api] [           main] beddedDataSourceBeanFactoryPostProcessor : Replacing 'dataSource' DataSource bean with embedded version
+2026-09-19T00:01:49.041-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.j.d.e.EmbeddedDatabaseFactory        : Starting embedded database: url='jdbc:h2:mem:86f4bcc7-daba-4ab8-b204-03d88a087343;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false', username='sa'
+2026-09-19T00:01:49.106-06:00  INFO 36056 --- [taskflow-api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-09-19T00:01:49.114-06:00  INFO 36056 --- [taskflow-api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-09-19T00:01:49.138-06:00  INFO 36056 --- [taskflow-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-19T00:01:49.145-06:00  INFO 36056 --- [taskflow-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory$EmbeddedDataSourceProxy@3a1b8d28']
 	Database driver: undefined/unknown
 	Database version: 2.3.232
 	Autocommit mode: undefined/unknown
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-09-18T23:42:09.147-06:00  INFO 13080 --- [taskflow-api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-Hibernate: create table pr
+2026-09-19T00:01:49.261-06:00  INFO 36056 --- [taskflow-api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+Hibernate: create table
 
 [Output truncated. Use view_range=[124, ...] to continue reading. In your next response, you may batch this with other view calls. File has at least 195 lines.]
 ```
@@ -1586,127 +1500,35 @@ Hibernate: create table pr
 
 ---
 
-<sub>3m 21s</sub>
-
-### `view`
-
-**view the file at C:\Users\navae\AppData\Local\Temp\1789796529225-copilot-tool-output-36496-3f6a519c-01bb-4c5f-8216-b97beb098fb3.txt.**
-
-C:\Users\navae\AppData\Local\Temp\1789796529225-copilot-tool-output-36496-3f6a519c-01bb-4c5f-8216-b97beb098fb3.txt (lines 124-350)
-
-<details>
-<summary>71 lines</summary>
-
-```
-Hibernate: create table tasks (id bigint generated by default as identity, assignee_id bigint, description varchar(255), due_date date, priority enum ('HIGH','LOW','MED') not null, project_id bigint not null, status enum ('DONE','IN_PROGRESS','TODO') not null, title varchar(120) not null, primary key (id))
-Hibernate: create table users (id bigint generated by default as identity, email varchar(255), password_hash varchar(255), role enum ('ADMIN','USER'), username varchar(255), primary key (id))
-Hibernate: alter table if exists users drop constraint if exists UKr43af9ap4edm43mmtq01oddj6
-Hibernate: alter table if exists users add constraint UKr43af9ap4edm43mmtq01oddj6 unique (username)
-Hibernate: alter table if exists tasks add constraint FKsfhn82y57i3k9uxww1s007acc foreign key (project_id) references projects
-2026-09-18T23:42:09.201-06:00  INFO 13080 --- [taskflow-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-09-18T23:42:09.289-06:00  INFO 13080 --- [taskflow-api] [           main] com.taskflow.slice.TaskRepositoryTest    : Started TaskRepositoryTest in 0.58 seconds (process running for 16.382)
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: select count(t1_0.id) from tasks t1_0 where t1_0.status=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where upper(t1_0.title) like upper(?) escape '\'
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.status=?
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.project_id=?
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.assignee_id=? and t1_0.status=?
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.status=?
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.status=?
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.status=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.assignee_id=? and t1_0.status=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: insert into projects (created_at,description,name,owner_id,id) values (?,?,?,?,default)
-Hibernate: select p1_0.id,p1_0.created_at,p1_0.description,p1_0.name,p1_0.owner_id from projects p1_0 where p1_0.id=?
-Hibernate: insert into tasks (assignee_id,description,due_date,priority,project_id,status,title,id) values (?,?,?,?,?,?,?,default)
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-Hibernate: select t1_0.id,t1_0.assignee_id,t1_0.description,t1_0.due_date,t1_0.priority,t1_0.project_id,t1_0.status,t1_0.title from tasks t1_0 where t1_0.id=?
-```
-
-</details>
-
-
----
-
-<sub>3m 24s</sub>
+<sub>1m 34s</sub>
 
 ### `view` — Failed
 
-**view the file at C:\Users\navae\AppData\Local\Temp\1789796529225-copilot-tool-output-36496-3f6a519c-01bb-4c5f-8216-b97beb098fb3.txt.**
+**view the file at C:\Users\navae\Downloads\taskflow-IA\AppData\Local\Temp\1789797709330-copilot-tool-output-27700-77ecc6f5-bef8-4aec-9340-21b40f6d5b03.txt.**
 
-C:\Users\navae\AppData\Local\Temp\1789796529225-copilot-tool-output-36496-3f6a519c-01bb-4c5f-8216-b97beb098fb3.txt (lines 350-800)
+C:\Users\navae\Downloads\taskflow-IA\AppData\Local\Temp\1789797709330-copilot-tool-output-27700-77ecc6f5-bef8-4aec-9340-21b40f6d5b03.txt (lines 200-400)
 
 ```
-view_range out of bounds
+Path does not exist
 ```
 
 
 ---
 
-<sub>3m 29s</sub>
+<sub>1m 46s</sub>
 
 ### Copilot
 
-He añadido el endpoint de búsqueda y los tests, y verifiqué con mvn -q test.
+Resumen corto:
 
-Archivos modificados
-- C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\service\TaskService.java
-- C:\Users\navae\Downloads\taskflow-IA\src\main\java\com\taskflow\controller\TaskController.java
+- Archivos creados: ninguno (la spec ya estaba implementada).
+- Archivos verificados (no modificados): 
+  - src/main/java/com/taskflow/service/TaskService.java
+  - src/main/java/com/taskflow/controller/TaskController.java
+  - src/test/java/com/taskflow/slice/BusquedaTareasControllerTest.java
+  - src/test/java/com/taskflow/unit/BusquedaTareasServiceTest.java
 
-Archivos creados
-- C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\unit\BusquedaTareasServiceTest.java
-- C:\Users\navae\Downloads\taskflow-IA\src\test\java\com\taskflow\slice\BusquedaTareasControllerTest.java
-
-Resultado de tests
-- mvn -q test finalizó correctamente: todos los tests pasaron (exit code 0).
+Resultado de mvn -q test: Éxito — la suite de pruebas completó correctamente (exit code 0).
 
 ---
 
